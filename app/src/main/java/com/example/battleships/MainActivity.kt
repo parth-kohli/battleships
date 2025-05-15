@@ -278,12 +278,11 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 androidx.compose.material3.Text("ARMADA", fontSize= 50.sp, fontWeight=FontWeight.ExtraBold, color = fore_color)
 
                 Box(modifier.fillMaxWidth().height(480.dp)) {
-                    // Background image
                     Image(
                         painter = painterResource(id = R.drawable.title_backdrop),
                         contentDescription = "Background Image",
 
-                        contentScale = ContentScale.Crop // Fills and crops to fit screen
+                        contentScale = ContentScale.Crop 
                     )
                     Column(
                         modifier = Modifier
@@ -756,8 +755,6 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 contentDescription = "Add", tint = fore_color)
                         }
                     }
-
-                    // Add extra space at the bottom to ensure scrolling works
                     Spacer(modifier = Modifier.height(100.dp))
                 }
             }
@@ -846,8 +843,6 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 contentDescription = "Add", tint = fore_color)
                         }
                     }
-
-                    // Add extra space at the bottom to ensure scrolling works
                     Spacer(modifier = Modifier.height(100.dp))
                 }
             }
@@ -858,7 +853,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxSize().background(contrast_color)
                 .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceEvenly// make it scrollable
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceEvenly
         ) {
             Text("CHOOSE THE GRID SIZE", textAlign = TextAlign.Center, color = fore_color, fontSize = 30.sp, fontWeight = FontWeight.Bold)
             for (j in 4..6) {
@@ -879,7 +874,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                                     } else {
                                                         Color.Green
                                                     }
-                                                ) // replace with `fore_color`
+                                                ) 
                                         )
                                         Spacer(modifier = Modifier.height(10.dp))
                                     }
@@ -1468,7 +1463,6 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
     val delayPerStep = durationMillis / steps
     LaunchedEffect(firecannon) {
         if (firecannon) {
-            // Set start and target positions
             cannonBallVisible.value=true
             repeat(steps) {
                 visible1.value -=  (255 / steps).toInt()
@@ -1496,7 +1490,6 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
     LaunchedEffect(firecannon1) {
         if (firecannon1) {
-            // Set start and target positions
             cannonBallVisible1.value=true
             repeat(steps1) {
                 visible2.value -=  (255 / steps1).toInt()
@@ -1520,10 +1513,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
         modifier = Modifier.width(1400.dp).height(380.dp).background(Color(99, 205, 191, 255)),
         contentAlignment = Alignment.Center
     ) {
-        // Cannon ball animation state
 
-
-        // Cannon ball
 
         Column(
             verticalArrangement = Arrangement.Center,
@@ -1537,11 +1527,11 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                 modifier = Modifier.fillMaxWidth().height(280.dp)
                     .onGloballyPositioned { coordinates ->
                         val topLeft = coordinates.positionInRoot()
-                        val size = coordinates.size.toSize() // in pixels
+                        val size = coordinates.size.toSize() 
                         boxPosition = topLeft + Offset(size.width / 2, size.height / 2)
                     }.pointerInput(Unit) {
                         detectTapGestures { tapOffset ->
-                            // handle tile click based on tapOffset
+            
                             val clickedTile = tiles1.find { tile ->
                                 val left = tile.x * tileSizex + gap+tileSizex
                                 val top = tile.y * tileSizey + gap
@@ -1893,7 +1883,6 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
                                         }
 
-                                        // You can now compare shipPosition to each tile center
                                     },
                                     onDrag = { change, dragAmount ->
                                         change.consume()
@@ -2002,7 +1991,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                 )
 
                                         }
-                                        // You can now compare shipPosition to each tile center
+                                       
                                     },
                                     onDrag = { change, dragAmount ->
                                         change.consume()
@@ -2394,7 +2383,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     modifier = Modifier.fillMaxWidth().height(280.dp)
                         .onGloballyPositioned { coordinates ->
                             val topLeft = coordinates.positionInRoot()
-                            val size = coordinates.size.toSize() // in pixels
+                            val size = coordinates.size.toSize() 
                             boxPosition = topLeft + Offset(size.width / 2, size.height / 2)
                         }.pointerInput(Unit) {
                             detectTapGestures { tapOffset ->
@@ -2799,7 +2788,6 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
                                             }
 
-                                            // You can now compare shipPosition to each tile center
                                         },
                                         onDrag = { change, dragAmount ->
                                             change.consume()
@@ -2908,7 +2896,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                     )
 
                                             }
-                                            // You can now compare shipPosition to each tile center
+                                    
                                         },
                                         onDrag = { change, dragAmount ->
                                             change.consume()
@@ -2992,7 +2980,6 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
                                             }
 
-                                            // You can now compare shipPosition to each tile center
                                         },
                                         onDrag = { change, dragAmount ->
                                             change.consume()
@@ -3309,7 +3296,7 @@ fun loadPlayerNames(context: Context): List<String> {
         val fileInput = context.openFileInput("players.txt")
         fileInput.bufferedReader().readLines()
     } catch (e: Exception) {
-        emptyList() // File doesn't exist yet or failed to read
+        emptyList()
 
     }
 }
@@ -3318,15 +3305,13 @@ fun readsettings(context: Context): List<String> {
         val fileInput = context.openFileInput("settings.txt")
         fileInput.bufferedReader().readLines()
     } catch (e: Exception) {
-        emptyList() // File doesn't exist yet or failed to read
-
+        emptyList()
     }
 }
 fun resetsettings(context: Context) {
     val scoreOutput = context.openFileOutput("settings.txt", Context.MODE_PRIVATE)
     scoreOutput.write("true\ntrue\ntrue\n100\ntrue\n".toByteArray())
-    /* darkmode randomtilesize soundeffects volumeslider autoscreenshots clearmatchhistory removeuser resetsettings*/
-
+  
 }
 fun editsettings(context: Context, number: Int, vol: Float) {
     val fileInput = context.openFileInput("settings.txt")
@@ -3364,7 +3349,7 @@ fun scoreList(context: Context): Map<String,List<String>> {
     } catch (e: Exception) {
         val key = listOf("")
         val value = listOf( listOf(""))
-         // File doesn't exist yet or failed to read
+        
         key.zip(value).toMap()
     }
 }
@@ -3384,7 +3369,7 @@ fun score_update(context: Context, winner: String){
     } catch (e: Exception) {
         val key = listOf("")
         val value = listOf( listOf(""))
-        // File doesn't exist yet or failed to read
+     
 
     }
 }
@@ -3425,7 +3410,7 @@ fun VolumeSlider(context: Context,
             value = volume,
             onValueChange = onVolumeChange,
             valueRange = 0f..1f,
-            steps = 9, // optional, makes it change in 10% steps
+            steps = 9,
             modifier = Modifier.fillMaxWidth()
         )
     }
