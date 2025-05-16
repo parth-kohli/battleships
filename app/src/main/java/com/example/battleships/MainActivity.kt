@@ -1302,59 +1302,164 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
             var lscore = score2
             Column(
                 modifier = Modifier.fillMaxSize().background(Color(0, 0, 0, 100))
-                    .padding(20.dp, 20.dp),
+                    ,
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
-                if (score2 == score1) {
-
-                } else {
-                    if (score2 > score1) {
-                        winner = user2
-                        loser = user1
-                        wscore = score2
-                        lscore = score1
-                    }
-                    Text(
-                        "THE WINNER IS ${winner.toUpperCase()}",
-                        fontSize = 30.sp,
-                        color = fore_color,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
-
-                    Text(
-                        "$user1      $score1",
-                        color = fccolor1,
-                        fontSize = 25.sp,
-                        fontFamily = FontFamily(Font(R.font.macondo, FontWeight.Normal))
-                    )
-
-
-                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
-                    Text(
-                        "$user2      $score2",
-                        color = fccolor1,
-                        fontSize = 25.sp,
-                        fontFamily = FontFamily(Font(R.font.macondo, FontWeight.Normal))
-                    )
-                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
-                    IconButton(
-                        onClick = { score_update(Context1, winner);screen_no = 0; },
-                        modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(fore_color)
-                            .size(200.dp, 80.dp)
+                Box(modifier=Modifier.clip(RoundedCornerShape(30.dp)).size(400.dp,400.dp).background(Color.Cyan)) {
+                    Column(
+                        verticalArrangement = Arrangement.Top,
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text(
-                            "SAVE RESULTS & EXIT",
-                            textAlign = TextAlign.Center,
-                            color = contrast_color
-                        )
+                        Box(
+
+                            modifier = Modifier.size(400.dp,300.dp).clip(RoundedCornerShape(30.dp))
+                                .background(Color.White)
+                        ) {
+                            Column(
+
+
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                if (score2 == score1) {
+                                    Row(modifier.fillMaxWidth().background(Color(227,182,57,255)), horizontalArrangement = Arrangement.Center) {
+                                        Text(
+                                            "IT'S A TIE",
+                                            fontSize = 30.sp,
+                                            color = Color.Black,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+
+                                    Text(
+                                        "$user1          $score1".toUpperCase(),
+                                        color = fccolor1,
+                                        fontSize = 25.sp,
+                                        fontFamily = FontFamily(
+                                            Font(
+                                                R.font.galgony,
+                                                FontWeight.Bold
+                                            )
+                                        )
+                                    )
+
+
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                    Text(
+                                        "$user2          $score2".toUpperCase(),
+                                        color = fccolor1,
+                                        fontSize = 25.sp,
+                                        fontFamily = FontFamily(
+                                            Font(
+                                                R.font.galgony,
+                                                FontWeight.Normal
+                                            )
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+
+                                } else {
+                                    if (score2 > score1) {
+                                        winner = user2
+                                        loser = user1
+                                        wscore = score2
+                                        lscore = score1
+                                    }
+                                    Row(modifier.fillMaxWidth().background(Color(227,182,57,255)), horizontalArrangement = Arrangement.Center) {
+                                        Text(
+                                            "THE WINNER IS ${winner.toUpperCase()}",
+                                            fontSize = 30.sp,
+                                            color = Color.Black,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+
+                                    Text(
+                                        "$user1          $score1".toUpperCase(),
+                                        color = fccolor1,
+                                        fontSize = 25.sp,
+                                        fontFamily = FontFamily(
+                                            Font(
+                                                R.font.galgony,
+                                                FontWeight.Bold
+                                            )
+                                        )
+                                    )
+
+
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                    Text(
+                                        "$user2          $score2".toUpperCase(),
+                                        color = fccolor1,
+                                        fontSize = 25.sp,
+                                        fontFamily = FontFamily(
+                                            Font(
+                                                R.font.galgony,
+                                                FontWeight.Normal
+                                            )
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                        Row(modifier=Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center){
+                            IconButton(
+                                onClick = { score_update(Context1, winner);screen_no = 20; },
+                                modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                                    .background(Color.Black)
+                                    .size(150.dp, 60.dp)
+                            ) {
+                                Text(
+                                    "PLAY AGAIN",
+                                    textAlign = TextAlign.Center,
+                                    color = Color.White, fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(20.dp))
+                        IconButton(
+                            onClick = { score_update(Context1, winner);screen_no = 0; },
+                            modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                                .background(Color.White)
+                                .size(150.dp, 60.dp)
+                        ) {
+                            Text(
+                                "HOME",
+                                textAlign = TextAlign.Center,
+                                color = Color.Black, fontWeight = FontWeight.Bold
+                            )
+                        }
+                            }
+
                     }
                 }
             }
 
         }
+    }
+    if (screen_no==20){
+        umode1=0
+        umode2=0
+        cannons1=3;
+        cannons2=3;
+        u1turn=1;
+        u2turn=1;
+        u1ships= mutableMapOf<Int, Shipposition>()
+        u1shipstrial= mutableMapOf<Int,Shipposition>()
+        u2ships= mutableMapOf<Int, Shipposition>()
+        u2shipstrial= mutableMapOf<Int,Shipposition>()
+        u1hitships= mutableListOf<Shipposition>()
+        u2hitships= mutableListOf<Shipposition>()
+        u1attackedtiles= mutableListOf<AttackedTile>()
+        u2attackedtiles= mutableListOf<AttackedTile>()
+        u1mode=1;
+        u2mode=1;
+        screen_no=10
     }
 
 }
@@ -1386,17 +1491,24 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
     var showDialog by remember { mutableStateOf(0) }
     if (showDialog==1){
-        showDialog=MyDialogDemo("Invalid Positioning")
+
+        MyDialogDemo("Invalid Positioning")
 
     }
     if (showDialog==2){
-        showDialog=MyDialogDemo("Overlap between Ships")
+        MyDialogDemo("Overlap between Ships")
 
     }
     if (showDialog==3){
-        showDialog=MyDialogDemo("Overlap between Ships")
+        MyDialogDemo("Ship on Attacked tile")
 
     }
+    LaunchedEffect(showDialog) {
+        if (showDialog!=0) {
+            delay(2000)
+            showDialog = 0
+        }
+        }
     if (u1turn == u2turn && umode1==2){
 
         ship1drag1=true
@@ -2077,10 +2189,10 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                     },
                                     onDrag = { change, dragAmount ->
                                         change.consume()
-                                        if (abs(offsetX) < 300f && opacityu1[0]!=0.5f) {
+                                        if (abs(offsetX) < 300f && opacityu1[3]!=0.5f) {
                                             offsetX += dragAmount.x
                                         }
-                                        if (abs(offsetY) < 300f && opacityu1[0]!=0.5f) {
+                                        if (abs(offsetY) < 300f && opacityu1[3]!=0.5f) {
                                             offsetY += dragAmount.y
                                         }
                                     }
@@ -2983,10 +3095,10 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                         },
                                         onDrag = { change, dragAmount ->
                                             change.consume()
-                                            if (abs(offsetX) < 300f && opacityu2[0] != 0.5f) {
+                                            if (abs(offsetX) < 300f && opacityu2[3] != 0.5f) {
                                                 offsetX += dragAmount.x
                                             }
-                                            if (abs(offsetY) < 300f && opacityu2[0] != 0.5f) {
+                                            if (abs(offsetY) < 300f && opacityu2[3] != 0.5f) {
                                                 offsetY += dragAmount.y
                                             }
                                         }
