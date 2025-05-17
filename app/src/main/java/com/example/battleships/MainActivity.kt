@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Paint
 import android.graphics.Paint.Align
 import android.icu.text.RelativeDateTimeFormatter
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -64,7 +65,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -200,6 +203,8 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     var u1mode by remember { mutableStateOf(1) }
     var u2mode by remember { mutableStateOf(1) }
     var screen_no by remember { mutableStateOf(0) }
+    val context = LocalContext.current
+
 
     var add_player by remember { mutableStateOf(false) }
     val listState= rememberScrollState()
@@ -209,8 +214,22 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     var sounds by remember { mutableStateOf(readsettings(Context1)[2].toBoolean()) }
     var volume by remember { mutableStateOf(readsettings(Context1)[3].toFloat()) }
     var autoss by remember { mutableStateOf(readsettings(Context1)[4].toBoolean()) }
-
+    val refresh = remember { mutableStateOf(false) }
     var correct1 by remember { mutableStateOf(Color.Green) }
+    LaunchedEffect(Unit) {
+        MusicController.start(context)
+    }
+    if (sounds==false){
+        volume=0f
+    }
+    LaunchedEffect(volume) {
+        MusicController.setVolume(volume)
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            MusicController.stop()
+        }
+    }
     if (!dark_mode ){
         correct1=Color.Red
     }
@@ -275,6 +294,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         cannons2=3;
         u1turn=1;
         u2turn=1;
+        refresh.value=false
         grid1= emptyList()
         grid2 = emptyList()
         u1ships= mutableMapOf<Int, Shipposition>()
@@ -306,7 +326,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                    IconButton(onClick = { last_open.addLast(screen_no);  screen_no = 1 }, modifier = Modifier.size(150.dp)) {
+                    IconButton(onClick = { Soundplayer.click(Context1, sounds);last_open.addLast(screen_no);  screen_no = 1 }, modifier = Modifier.size(150.dp)) {
                         Image(
                             painter = painterResource(id = R.drawable.button1),
                             contentDescription = "My Icon",
@@ -318,9 +338,9 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     }
                 Row (modifier = Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.SpaceEvenly){
                     Column {
-                        IconButton(onClick = { screen_no = 2; last_open.addLast(0) }, modifier = Modifier.size(80.dp).clip(
+                        IconButton(onClick = { Soundplayer.click(Context1, sounds); screen_no = 2; last_open.addLast(0) }, modifier = Modifier.size(80.dp).clip(
                             CircleShape).background(fore_color)) {
-                            IconButton(onClick = { screen_no = 2; last_open.addLast(0)}, modifier = Modifier.size(70.dp).clip(
+                            IconButton(onClick = {Soundplayer.click(Context1, sounds); screen_no = 2; last_open.addLast(0)}, modifier = Modifier.size(70.dp).clip(
                                 CircleShape).background(Color(246,216,21,255))) {
                                     Icon(imageVector = Icons.Outlined.Settings, contentDescription = "Settings", tint=contrast_color, modifier = Modifier.size(60.dp))
                             }
@@ -328,9 +348,9 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                         }
                     }
                     Column {
-                        IconButton(onClick = { screen_no = 30; last_open.addLast(0) }, modifier = Modifier.size(80.dp).clip(
+                        IconButton(onClick = { Soundplayer.click(Context1, sounds); screen_no = 30; last_open.addLast(0) }, modifier = Modifier.size(80.dp).clip(
                             CircleShape).background(fore_color)) {
-                            IconButton(onClick = { screen_no =30; last_open.addLast(0)}, modifier = Modifier.size(70.dp).clip(
+                            IconButton(onClick = { Soundplayer.click(Context1, sounds); screen_no =30; last_open.addLast(0)}, modifier = Modifier.size(70.dp).clip(
                                 CircleShape).background(Color(246,216,21,255))) {
                                 Icon(painter = painterResource(R.drawable.history), contentDescription = "History", tint=contrast_color, modifier = Modifier.size(60.dp))
                             }
@@ -340,12 +360,12 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             IconButton(
-                                onClick = { screen_no = 4; last_open.addLast(0) }, modifier = Modifier.size(80.dp).clip(
+                                onClick = {Soundplayer.click(Context1, sounds); screen_no = 4; last_open.addLast(0) }, modifier = Modifier.size(80.dp).clip(
                                     CircleShape
                                 ).background(fore_color)
                             ) {
                                 IconButton(
-                                    onClick = { screen_no = 4; last_open.addLast(0) },
+                                    onClick = {Soundplayer.click(Context1, sounds); screen_no = 4; last_open.addLast(0) },
                                     modifier = Modifier.size(70.dp).clip(
                                         CircleShape
                                     ).background(Color(246, 216, 21, 255))
@@ -361,9 +381,9 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                             }
                         }
                         Column () {
-                            IconButton(onClick = { screen_no = 3; last_open.addLast(0) }, modifier = Modifier.size(80.dp).clip(
+                            IconButton(onClick = { Soundplayer.click(Context1, sounds);screen_no = 3; last_open.addLast(0) }, modifier = Modifier.size(80.dp).clip(
                                 CircleShape).background(fore_color)) {
-                                IconButton(onClick = { screen_no = 3; last_open.addLast(0)}, modifier = Modifier.size(70.dp).clip(
+                                IconButton(onClick = {Soundplayer.click(Context1, sounds); screen_no = 3; last_open.addLast(0)}, modifier = Modifier.size(70.dp).clip(
                                     CircleShape).background(Color(246,216,21,255))) {
                                     Text("?", fontSize = 60.sp, color = contrast_color)
                                 }
@@ -384,7 +404,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         Scaffold (topBar = {
             Column(modifier = Modifier.background(contrast_color)) {
                 TopAppBar(title = {
-                    IconButton(onClick = { screen_no = last_open.last(); last_open.removeLast() }) {
+                    IconButton(onClick = {Soundplayer.click(Context1, sounds); screen_no = last_open.last(); last_open.removeLast() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -399,7 +419,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
                 Text("GAME MODE", fontSize = 40.sp, color= fore_color, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
-                IconButton(onClick = {screen_no=5; last_open.addLast(1)}, modifier=Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor1).size(200.dp,80.dp)) {
+                IconButton(onClick = {Soundplayer.click(Context1, sounds);screen_no=5; last_open.addLast(1)}, modifier=Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor1).size(200.dp,80.dp)) {
                     Row (modifier= Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically){
                         Text("PVP", color = fccolor1, fontSize = 25.sp, fontFamily = FontFamily(Font(R.font.macondo, FontWeight.Normal)))
                         Icon(imageVector = Icons.Outlined.Person, contentDescription = "PVP", tint= contrast_color, modifier = Modifier.requiredSize(60.dp))
@@ -407,7 +427,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 }
                 Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
 
-                IconButton(onClick = {screen_no=5; np=1; last_open.addLast(1)}, modifier=Modifier.clip(RoundedCornerShape(50.dp)).background(bccollor2).size(200.dp,80.dp)) {
+                IconButton(onClick = {Soundplayer.click(Context1, sounds);screen_no=5; np=1; last_open.addLast(1)}, modifier=Modifier.clip(RoundedCornerShape(50.dp)).background(bccollor2).size(200.dp,80.dp)) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
                         horizontalArrangement = Arrangement.Center,
@@ -428,7 +448,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     }
                 }
                 Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
-                IconButton(onClick = {screen_no=5; nt=2; last_open.addLast(1)}, modifier=Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor3).size(200.dp,80.dp)) {
+                IconButton(onClick = {Soundplayer.click(Context1, sounds);screen_no=5; nt=2; last_open.addLast(1)}, modifier=Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor3).size(200.dp,80.dp)) {
                     Row (modifier= Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically){
                         Text("Tourn", color = fccolor, fontSize = 25.sp, fontFamily = FontFamily(Font(R.font.macondo, FontWeight.Normal)))
                         Icon(painter = painterResource(R.drawable.tophy), contentDescription = "Tournament", tint= contrast_color, modifier = Modifier.size(60.dp))
@@ -472,7 +492,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 Row {
                     Text("Dark Mode: ", color=fore_color, fontStyle = FontStyle(R.font.macondo))
                     Spacer(modifier=Modifier.fillMaxHeight().width(30.dp))
-                    IconButton(onClick = { editsettings(context, 0, 100f); dark_mode=!dark_mode }, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                    IconButton(onClick = { Soundplayer.click(Context1, sounds);editsettings(context, 0, 100f); dark_mode=!dark_mode }, modifier = Modifier.clip(RoundedCornerShape(50.dp))
                         .background(correct1)
                         .size(100.dp, 40.dp)) {
                         if (settings[0]=="true") {
@@ -505,7 +525,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     Text("Randomize Tile\n Size: ", color=fore_color, fontStyle = FontStyle(R.font.macondo))
                     Spacer(modifier=Modifier.fillMaxHeight().width(30.dp))
-                    IconButton(onClick = { editsettings(context, 1, 100f); enable_tiles=!enable_tiles}, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                    IconButton(onClick = {Soundplayer.click(Context1, sounds); editsettings(context, 1, 100f); enable_tiles=!enable_tiles}, modifier = Modifier.clip(RoundedCornerShape(50.dp))
                         .background(correct2)
                         .size(100.dp, 40.dp)) {
                         if (settings[1]=="true") {
@@ -538,7 +558,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     Text("Allow Sounds: ", color=fore_color, fontStyle = FontStyle(R.font.macondo))
                     Spacer(modifier=Modifier.fillMaxHeight().width(30.dp))
-                    IconButton(onClick = { editsettings(context, 2, 100f); sounds=!sounds}, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                    IconButton(onClick = { Soundplayer.click(Context1, sounds);editsettings(context, 2, 100f); sounds=!sounds}, modifier = Modifier.clip(RoundedCornerShape(50.dp))
                         .background(correct3)
                         .size(100.dp, 40.dp)) {
                         if (settings[2]=="true") {
@@ -574,7 +594,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     Text("Auto Screenshot: ", color=fore_color, fontStyle = FontStyle(R.font.macondo))
                     Spacer(modifier=Modifier.fillMaxHeight().width(30.dp))
-                    IconButton(onClick = { editsettings(context, 4, 100f); autoss=!autoss}, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                    IconButton(onClick = {Soundplayer.click(Context1, sounds); editsettings(context, 4, 100f); autoss=!autoss}, modifier = Modifier.clip(RoundedCornerShape(50.dp))
                         .background(correct4)
                         .size(100.dp, 40.dp)) {
                         if (settings[4]=="true") {
@@ -606,7 +626,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
                 Row {
                     IconButton(
-                        onClick = { resetsettings(context); dark_mode=true; sounds=true; enable_tiles=true;volume=1f; autoss=true},
+                        onClick = {Soundplayer.click(Context1, sounds); resetsettings(context); dark_mode=true; sounds=true; enable_tiles=true;volume=1f; autoss=true},
                         modifier = Modifier.size(240.dp, 40.dp).clip(RoundedCornerShape(10.dp)).background(Color.Red)
                     ) {
                         Text("Reset Settings", color = contrast_color, fontWeight = FontWeight.Bold, fontSize = 20.sp, fontFamily = FontFamily( Font(R.font.galgony, FontWeight.Normal)))
@@ -615,7 +635,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
                 Row {
                     IconButton(
-                        onClick = { clear_history(context)},
+                        onClick = {Soundplayer.click(Context1, sounds); clear_history(context)},
                         modifier = Modifier.size(240.dp, 40.dp).clip(RoundedCornerShape(10.dp)).background(Color.Red)
                     ) {
                         Text("Clear Score History", color = contrast_color, fontWeight = FontWeight.Bold, fontSize = 20.sp, fontFamily = FontFamily( Font(R.font.galgony, FontWeight.Normal)))
@@ -624,7 +644,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
                 Row {
                     IconButton(
-                        onClick = { clear_players(context)},
+                        onClick = { Soundplayer.click(Context1, sounds);clear_players(context)},
                         modifier = Modifier.size(240.dp, 40.dp).clip(RoundedCornerShape(10.dp)).background(Color.Red)
                     ) {
                         Text("Clear Players", color = contrast_color, fontWeight = FontWeight.Bold, fontSize = 20.sp, fontFamily = FontFamily( Font(R.font.galgony, FontWeight.Normal)))
@@ -703,7 +723,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         Scaffold(topBar = {
             Column {
                 TopAppBar(title = {
-                    IconButton(onClick = { screen_no = last_open.last(); last_open.removeLast() }) {
+                    IconButton(onClick = {Soundplayer.click(Context1, sounds); screen_no = last_open.last(); last_open.removeLast() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -745,7 +765,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     for (i in playerList) {
                         IconButton(
-                            onClick = { last_open.addLast(5); user1=i; playerList.toMutableList().remove(i); if (np==2 || nt==2) {screen_no=6}; else{ screen_no=8} },
+                            onClick = { Soundplayer.click(Context1, sounds);last_open.addLast(5); user1=i; playerList.toMutableList().remove(i); if (np==2 || nt==2) {screen_no=6}; else{ screen_no=8} },
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50.dp))
                                 .background(fore_color)
@@ -759,7 +779,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     var context = LocalContext.current
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (add_player && (playerName != "")) {
                                 savePlayerNames(context, playerName)
                                 playerName = ""
@@ -832,7 +852,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     for (i in playerList) {
                         IconButton(
-                            onClick = { last_open.addLast(5); user2=i; if (nt==2) {screen_no=9} else {screen_no=7} },
+                            onClick = { Soundplayer.click(Context1, sounds);last_open.addLast(5); user2=i; if (nt==2) {screen_no=9} else {screen_no=7} },
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50.dp))
                                 .background(fore_color)
@@ -846,7 +866,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     var context = LocalContext.current
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (add_player && (playerName != "")) {
                                 savePlayerNames(context, playerName)
                                 playerName = ""
@@ -884,7 +904,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
             for (j in 4..6) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Absolute.Center){
                 for (i in 4..6) {
-                    IconButton(onClick = {rows=j; cols=i; grid1= generateGrid(rows,cols,enable_tiles); grid2=
+                    IconButton(onClick = {Soundplayer.click(Context1, sounds);rows=j; cols=i; grid1= generateGrid(rows,cols,enable_tiles); grid2=
                         generateGrid(rows, cols,enable_tiles);  if (np==1) screen_no=12;else if (rounds==1 ) screen_no=10; else if (rounds>1) screen_no=11}, modifier=Modifier.height(180.dp).width((110+21*(i-4)).dp).clip(RectangleShape).background(contrast_color) ) {
                         Row(Modifier.padding(10.dp).fillMaxSize(), horizontalArrangement = Arrangement.Center) {
                             for (k in 1..i) {
@@ -919,7 +939,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         Scaffold (topBar = {
             Column(modifier = Modifier.background(contrast_color)) {
                 TopAppBar(title = {
-                    IconButton(onClick = { screen_no = last_open.last(); last_open.removeLast() }) {
+                    IconButton(onClick = { Soundplayer.click(Context1, sounds);screen_no = last_open.last(); last_open.removeLast() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -940,7 +960,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 )
                 Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
                 IconButton(
-                    onClick = {difficulty=0; screen_no = 7; last_open.addLast(8) },
+                    onClick = {Soundplayer.click(Context1, sounds);difficulty=0; screen_no = 7; last_open.addLast(8) },
                     modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor1)
                         .size(200.dp, 80.dp)
                 ) {
@@ -960,7 +980,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 }
                 Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
                 IconButton(
-                    onClick = {difficulty=1; screen_no = 7; last_open.addLast(8) },
+                    onClick = {Soundplayer.click(Context1, sounds);difficulty=1; screen_no = 7; last_open.addLast(8) },
                     modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(bccollor2)
                         .size(200.dp, 80.dp)
                 ) {
@@ -980,7 +1000,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 }
                 Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
                 IconButton(
-                    onClick = {difficulty=2; screen_no = 7; last_open.addLast(8) },
+                    onClick = {Soundplayer.click(Context1, sounds);difficulty=2; screen_no = 7; last_open.addLast(8) },
                     modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor3)
                         .size(200.dp, 80.dp)
                 ) {
@@ -1030,7 +1050,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 )
                 Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
                 IconButton(
-                    onClick = {rounds=3; screen_no = 7; last_open.addLast(8) },
+                    onClick = {Soundplayer.click(Context1, sounds);rounds=3; screen_no = 7; last_open.addLast(8) },
                     modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor1)
                         .size(200.dp, 80.dp)
                 ) {
@@ -1050,7 +1070,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 }
                 Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
                 IconButton(
-                    onClick = {rounds=5; screen_no = 7; last_open.addLast(8) },
+                    onClick = {Soundplayer.click(Context1, sounds);rounds=5; screen_no = 7; last_open.addLast(8) },
                     modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(bccollor2)
                         .size(200.dp, 80.dp)
                 ) {
@@ -1069,7 +1089,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 }
                 Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
                 IconButton(
-                    onClick = {rounds=7; screen_no = 7; last_open.addLast(8) },
+                    onClick = {Soundplayer.click(Context1, sounds);rounds=7; screen_no = 7; last_open.addLast(8) },
                     modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor3)
                         .size(200.dp, 80.dp)
                 ) {
@@ -1097,6 +1117,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
 
     if (screen_no==10) {
+
         Box(modifier = Modifier.fillMaxSize()) {
             Column {
                 Spacer(modifier = Modifier.height(15.dp))
@@ -1122,7 +1143,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     }
 
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (umode1 == 0 || u1turn != u2turn) {
                             }; else if (u1mode == 1) {
                                 u1mode = 2; umode1 = 2;
@@ -1198,7 +1219,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                 }
 
-                grid(grid1, grid2)
+                grid(grid1, grid2, refresh,sounds)
 
                 Row(
                     modifier = Modifier.fillMaxWidth().height(60.dp)
@@ -1231,7 +1252,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     }
                     Spacer(modifier = Modifier.width(20.dp))
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (umode2 == 0 || u1turn == u2turn) {
                             }; else if (u2mode == 1) {
                                 u2mode = 2; umode2 = 2;
@@ -1276,7 +1297,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
             }
         }
-        if (cannons1 == 0 && cannons2 == 0) {
+        if ( refresh.value) {
             var score1 = 0
             var score2 = 0
             var ship11 = 0
@@ -1438,7 +1459,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                         Row(modifier=Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center){
                             if (np!=1) {
                                 IconButton(
-                                    onClick = {
+                                    onClick = {Soundplayer.click(Context1, sounds);
                                         if (winner != "") score_update(
                                             Context1,
                                             winner
@@ -1457,7 +1478,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 Spacer(modifier = Modifier.width(20.dp))
                             }
                         IconButton(
-                            onClick = {if (winner!="" && np!=1) score_update(Context1, winner); if (np==1 && score1>score2) bot_update(Context1, user1);screen_no = 0; },
+                            onClick = {Soundplayer.click(Context1, sounds);if (winner!="" && np!=1) score_update(Context1, winner); if (np==1 && score1>score2) bot_update(Context1, user1);screen_no = 0; },
                             modifier = Modifier.clip(RoundedCornerShape(50.dp))
                                 .background(Color.White)
                                 .size(150.dp, 60.dp)
@@ -1507,7 +1528,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     }
 
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (umode1 == 0 || u1turn != u2turn) {
                             }; else if (u1mode == 1) {
                                 u1mode = 2; umode1 = 2;
@@ -1583,7 +1604,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                 }
 
-                grid(grid1, grid2)
+                grid(grid1, grid2, refresh, sounds)
 
                 Row(
                     modifier = Modifier.fillMaxWidth().height(60.dp)
@@ -1616,7 +1637,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     }
                     Spacer(modifier = Modifier.width(20.dp))
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (umode2 == 0 || u1turn == u2turn) {
                             }; else if (u2mode == 1) {
                                 u2mode = 2; umode2 = 2;
@@ -1661,7 +1682,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
             }
         }
-        if (cannons1 == 0 && cannons2 == 0) {
+        if (refresh.value) {
             println(rounds)
             var score1 = 0
             var score2 = 0
@@ -1875,7 +1896,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 IconButton(
-                                    onClick = { screen_no = 0; },
+                                    onClick = { Soundplayer.click(Context1, sounds);screen_no = 0; },
                                     modifier = Modifier.clip(RoundedCornerShape(50.dp))
                                         .background(Color.White)
                                         .size(150.dp, 60.dp)
@@ -2039,7 +2060,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     }
 
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (umode1 == 0 || u1turn != u2turn) {
                             }; else if (u1mode == 1) {
                                 u1mode = 2; umode1 = 2;
@@ -2115,7 +2136,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                 }
 
-                grid(grid1, grid2)
+                grid(grid1, grid2, refresh, sounds)
 
                 Row(
                     modifier = Modifier.fillMaxWidth().height(60.dp)
@@ -2148,7 +2169,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     }
                     Spacer(modifier = Modifier.width(20.dp))
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (umode2 == 0 || u1turn == u2turn) {
                             }; else if (u2mode == 1) {
                                 u2mode = 2; umode2 = 2;
@@ -2193,7 +2214,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
             }
         }
-        if (cannons1 == 0 && cannons2 == 0) {
+        if (refresh.value) {
             var score1 = 0
             var score2 = 0
             var ship11 = 0
@@ -2355,7 +2376,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                         Row(modifier=Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center){
 
                             IconButton(
-                                onClick = {if (winner!="" && np!=1) score_update(Context1, winner); if (np==1 && score1>score2) bot_update(Context1, user1);screen_no = 0; },
+                                onClick = {Soundplayer.click(Context1, sounds);if (winner!="" && np!=1) score_update(Context1, winner); if (np==1 && score1>score2) bot_update(Context1, user1);screen_no = 0; },
                                 modifier = Modifier.clip(RoundedCornerShape(50.dp))
                                     .background(Color.White)
                                     .size(150.dp, 60.dp)
@@ -2383,6 +2404,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
         umode1=0
         umode2=0
+        refresh.value=false
         cannons1=3;
         cannons2=3;
         u1turn=1;
@@ -2403,6 +2425,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         rounds-=1
         umode1=0
         umode2=0
+        refresh.value=false
         if (rounds!=0) {
             cannons1 = 3;
             cannons2 = 3;
@@ -2485,7 +2508,7 @@ fun saveBitmapToStorage(context: Context, bitmap: Bitmap) {
 var counter=1
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
-fun grid(grid1:List<Tile>, grid2:List<Tile>) {
+fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sounds: Boolean) {
     val tiles1 = remember { grid1 }
     val tiles2 = remember { grid2 }
     val tileSizex = if (cols == 4) 180f; else if (cols == 5) 144f; else 120f
@@ -2500,14 +2523,16 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
     var ship3drag1 by remember { mutableStateOf(false) }
     var ship4drag1 by remember { mutableStateOf(false) }
     var selectedtile by remember { mutableStateOf(selectedTile(Offset(-1f,-1f),-1, -1, -1, -1)) }
-    var refresh by remember { mutableStateOf(true) }
+
     var tile1: MutableList<Snapping> = mutableListOf<Snapping>()
     var tile2= mutableListOf<Snapping>()
     var opacityu1= mutableListOf(1f,1f,1f,1f);
     var opacityu2= mutableListOf(1f,1f,1f,1f);
     var firecannon by remember { mutableStateOf(false) }
     var firecannon1 by remember { mutableStateOf(false) }
-
+    var autou1 by remember { mutableStateOf(false) }
+    var autou2 by remember { mutableStateOf(false) }
+    
     var showDialog by remember { mutableStateOf(0) }
     if (showDialog==1){
 
@@ -2528,7 +2553,28 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
             showDialog = 0
         }
         }
-
+    LaunchedEffect (autou1){
+        if (autou1){
+            delay(500)
+            ship1drag1=true
+            ship2drag1=true
+            ship3drag1=true
+            ship4drag1=true
+            delay(500)
+            autou1=false
+        }
+    }
+    LaunchedEffect (autou2){
+        if (autou2){
+            delay(500)
+            ship1drag=true
+            ship2drag=true
+            ship3drag=true
+            ship4drag=true
+            delay(500)
+            autou2=false
+        }
+    }
     if (u1turn == u2turn && umode1==2){
 
         ship1drag1=true
@@ -2594,8 +2640,12 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
     val durationMillis = 1000
     val steps = 100
     val delayPerStep = durationMillis / steps
+    val context1=LocalContext.current
     LaunchedEffect(firecannon) {
         if (firecannon) {
+            if (sounds) {
+                Soundplayer.fireball(context = context1)
+            }
             cannonBallVisible.value=true
             repeat(steps) {
                 visible1.value -=  (255 / steps).toInt()
@@ -2624,6 +2674,9 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
     LaunchedEffect(firecannon1) {
         if (firecannon1) {
+            if (sounds) {
+                Soundplayer.fireball(context = context1)
+            }
             cannonBallVisible1.value=true
             repeat(steps1) {
                 visible2.value -=  (255 / steps1).toInt()
@@ -2812,7 +2865,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
             }
             else{
-                botplacedships(tile1, tileSizex, tileSizey)
+                botplacedships(tile1, tileSizex, tileSizey, opacityu2)
                 u2turn+=1
 
             }
@@ -3034,7 +3087,8 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     var offsetX by remember { mutableStateOf(0.01f) }
                     var offsetY by remember { mutableStateOf(0.01f) }
                     var rot1 by remember { mutableStateOf(0) }
-                    if (umode1!=0){
+                    if (umode1!=0 || autou1){
+                        println(u1ships)
                         for (i in u1ships.values){
                             if (i.id==1){
                                 offsetX=i.xcoord
@@ -3044,13 +3098,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         }
                     }
                     IconButton(
-                        onClick = {if (opacityu1[0]!=0.5f) rot1 = 1 - rot1; counter = 1 },
+                        onClick = {Soundplayer.rotate(context1, sounds);if (opacityu1[0]!=0.5f) rot1 = 1 - rot1; counter = 1 },
                         modifier = Modifier
                             .size(130.dp)
                             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                             .pointerInput(Unit) {
                                 detectDragGestures(
                                     onDragEnd = {
+                                        Soundplayer.pop(context1, sounds)
                                         var min = 10000.toDouble()
 
                                         var minx = 0.001f
@@ -3135,7 +3190,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     var offsetY by remember { mutableStateOf(0.01f) }
                     var rot by remember { mutableStateOf(0) }
 
-                    if (umode1!=0){
+                    if (umode1!=0 || autou1){
                         for (i in u1ships.values){
                             if (i.id==2){
                                 offsetX=i.xcoord
@@ -3145,13 +3200,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         }
                     }
                     IconButton(
-                        onClick = {if (opacityu1[1]!=0.5f) rot = 1 - rot; counter = 1 },
+                        onClick = {Soundplayer.rotate(context1, sounds);if (opacityu1[1]!=0.5f) rot = 1 - rot; counter = 1 },
                         modifier = Modifier
                             .size(60.dp)
                             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                             .pointerInput(Unit) {
                                 detectDragGestures(
                                     onDragEnd = {
+                                        Soundplayer.pop(context1, sounds)
                                         var min = 10000.toDouble()
 
                                         var minx = 0.01f
@@ -3218,7 +3274,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     var offsetX by remember { mutableStateOf(0.01f) }
                     var offsetY by remember { mutableStateOf(0.01f) }
                     var rot2 by remember { mutableStateOf(0) }
-                    if (umode1!=0){
+                    if (umode1!=0  || autou1){
                         for (i in u1ships.values){
                             if (i.id==3){
                                 offsetX=i.xcoord
@@ -3228,13 +3284,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         }
                     }
                     IconButton(
-                        onClick = {if (opacityu1[2]!=0.5f) rot2 = 1 - rot2; counter = 1 },
+                        onClick = {Soundplayer.click(context1, sounds);if (opacityu1[2]!=0.5f) rot2 = 1 - rot2; counter = 1 },
                         modifier = Modifier
                             .size(100.dp)
                             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                             .pointerInput(Unit) {
                                 detectDragGestures(
                                     onDragEnd = {
+                                        Soundplayer.pop(context1, sounds)
                                         val shipOffsetInBox = Offset(offsetX, offsetY)
                                         var min = 10000.toDouble()
 
@@ -3327,7 +3384,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     var offsetX by remember { mutableStateOf(0.01f) }
                     var offsetY by remember { mutableStateOf(0.01f) }
                     var rot3 by remember { mutableStateOf(0) }
-                    if (umode1!=0){
+                    if (umode1!=0  || autou1){
                         for (i in u1ships.values){
                             if (i.id==4){
                                 offsetX=i.xcoord
@@ -3337,13 +3394,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         }
                     }
                     IconButton(
-                        onClick = {if (opacityu1[3]!=0.5f) rot3 = 1 - rot3; counter = 1 },
+                        onClick = {Soundplayer.rotate(context1, sounds);if (opacityu1[3]!=0.5f) rot3 = 1 - rot3; counter = 1 },
                         modifier = Modifier
                             .size(60.dp)
                             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                             .pointerInput(Unit) {
                                 detectDragGestures(
                                     onDragEnd = {
+                                        Soundplayer.pop(context1, sounds)
                                         var min = 10000.toDouble()
 
                                         var minx = 0.01f
@@ -3507,115 +3565,143 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                     color = Color.White,
                                     textAlign = TextAlign.Center
                                 )
-                                if (ship1drag && ship2drag && ship3drag && ship4drag) {
-                                    IconButton(onClick = {
-                                        val x1start = u2shipstrial[1]?.xcoord ?: -1f
-                                        val y1start = u2shipstrial[1]?.ycoord ?: -1f
-                                        val x2start = u2shipstrial[2]?.xcoord ?: -1f
-                                        val y2start = u2shipstrial[2]?.ycoord ?: -1f
-                                        val x3start = u2shipstrial[3]?.xcoord ?: -1f
-                                        val y3start = u2shipstrial[3]?.ycoord ?: -1f
-                                        val x4start = u2shipstrial[4]?.xcoord ?: -1f
-                                        val y4start = u2shipstrial[4]?.ycoord ?: -1f
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                    if (ship1drag && ship2drag && ship3drag && ship4drag) {
+                                        IconButton(
+                                            onClick = {Soundplayer.click(context1, sounds);
+                                                val x1start = u2shipstrial[1]?.xcoord ?: -1f
+                                                val y1start = u2shipstrial[1]?.ycoord ?: -1f
+                                                val x2start = u2shipstrial[2]?.xcoord ?: -1f
+                                                val y2start = u2shipstrial[2]?.ycoord ?: -1f
+                                                val x3start = u2shipstrial[3]?.xcoord ?: -1f
+                                                val y3start = u2shipstrial[3]?.ycoord ?: -1f
+                                                val x4start = u2shipstrial[4]?.xcoord ?: -1f
+                                                val y4start = u2shipstrial[4]?.ycoord ?: -1f
 
-                                        if (x1start == -1f || x2start == -1f || x3start == -1f || x4start == -1f || y1start == -1f || y2start == -1f || y3start == -1f || y4start == -1f || u2shipstrial[1]?.xcoord == 0.01f || u2shipstrial[2]?.xcoord == 0.01f || u2shipstrial[3]?.xcoord == 0.01f || u2shipstrial[4]?.xcoord == 0.01f || u2shipstrial[1]?.ycoord == 0.01f || u2shipstrial[2]?.ycoord == 0.01f || u2shipstrial[3]?.ycoord == 0.01f || u2shipstrial[4]?.ycoord == 0.01f) {
-                                            showDialog = 1
-                                        } else if (u2shipstrial[1] == null || u2shipstrial[2] == null || u2shipstrial[3] == null || u2shipstrial[4] == null) {
-                                            showDialog = 1
-                                        } else {
-                                            if (u2shipstrial[1]?.rot == 0) {
-                                                for (i in (x1start - 3 * tileSizex / 2).toInt()..(x1start + 3 * tileSizex / 2).toInt()) {
-                                                    if (i < (x2start + tileSizex / 2) && i > (x2start - tileSizex / 2) && y1start == y2start) {
-                                                        showDialog = 2
-                                                    }
-                                                    if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y1start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[1]!!.y < 2))) {
-                                                        showDialog = 2
+                                                if (x1start == -1f || x2start == -1f || x3start == -1f || x4start == -1f || y1start == -1f || y2start == -1f || y3start == -1f || y4start == -1f || u2shipstrial[1]?.xcoord == 0.01f || u2shipstrial[2]?.xcoord == 0.01f || u2shipstrial[3]?.xcoord == 0.01f || u2shipstrial[4]?.xcoord == 0.01f || u2shipstrial[1]?.ycoord == 0.01f || u2shipstrial[2]?.ycoord == 0.01f || u2shipstrial[3]?.ycoord == 0.01f || u2shipstrial[4]?.ycoord == 0.01f) {
+                                                    showDialog = 1
+                                                } else if (u2shipstrial[1] == null || u2shipstrial[2] == null || u2shipstrial[3] == null || u2shipstrial[4] == null) {
+                                                    showDialog = 1
+                                                } else {
+                                                    if (u2shipstrial[1]?.rot == 0) {
+                                                        for (i in (x1start - 3 * tileSizex / 2).toInt()..(x1start + 3 * tileSizex / 2).toInt()) {
+                                                            if (i < (x2start + tileSizex / 2) && i > (x2start - tileSizex / 2) && y1start == y2start) {
+                                                                showDialog = 2
+                                                            }
+                                                            if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y1start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[1]!!.y < 2))) {
+                                                                showDialog = 2
 
+                                                            }
+                                                            if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                                                                showDialog = 2
+                                                            }
+                                                        }
+                                                    } else if (u2shipstrial[1]?.rot == 1) {
+                                                        for (i in (y1start - 3 * tileSizey / 2).toInt()..(y1start + 3 * tileSizey / 2).toInt()) {
+                                                            if (i < (y2start + tileSizey / 2) && i > (y2start - tileSizey / 2) && x1start == x2start) {
+                                                                showDialog = 2
+                                                            }
+                                                            if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x1start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[1]!!.x < 2))) {
+                                                                showDialog = 2
+
+                                                            }
+                                                            if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x1start == x4start) {
+                                                                showDialog = 2
+                                                            }
+                                                        }
                                                     }
-                                                    if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
-                                                        showDialog = 2
+                                                    if (u2shipstrial[2]?.rot == 0) {
+                                                        for (i in (x2start - tileSizex / 2).toInt()..(x2start + tileSizex / 2).toInt()) {
+                                                            if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y2start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[2]!!.y < 2))) {
+                                                                showDialog = 2
+
+                                                            }
+                                                            if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                                                                showDialog = 2
+                                                            }
+                                                        }
+                                                    } else if (u2shipstrial[2]?.rot == 1) {
+                                                        for (i in (y2start - tileSizey / 2).toInt()..(y2start + tileSizey / 2).toInt()) {
+                                                            if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x2start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[2]!!.x < 2))) {
+                                                                showDialog = 2
+
+                                                            }
+                                                            if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x2start == x4start) {
+                                                                showDialog = 2
+                                                            }
+                                                        }
+                                                    }
+
+                                                    if (u2shipstrial[4]?.rot == 0) {
+                                                        for (i in (x4start - tileSizex / 2).toInt()..(x4start + tileSizex / 2).toInt()) {
+                                                            if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y4start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[4]!!.y < 2))) {
+                                                                showDialog = 2
+
+                                                            }
+
+                                                        }
+                                                    } else if (u2shipstrial[4]?.rot == 1) {
+                                                        for (i in (y4start - tileSizey / 2).toInt()..(y4start + tileSizey / 2).toInt()) {
+                                                            if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x4start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[4]!!.x < 2))) {
+                                                                showDialog = 2
+
+                                                            }
+                                                        }
+                                                    }
+                                                    for (i in u1attackedtiles) {
+                                                        if ((opacityu2[0] == 1f && i.x == u2shipstrial[1]!!.x && i.y == u2shipstrial[1]!!.y) || (opacityu2[1] == 1f && i.x == u2shipstrial[2]!!.x && i.y == u2shipstrial[2]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x && i.y == u2shipstrial[3]!!.y) || (opacityu2[3] == 1f && i.x == u2shipstrial[4]!!.x && i.y == u2shipstrial[4]!!.y) || (opacityu2[0] == 1f && (i.x == u2shipstrial[1]!!.x - 1 || i.x == u2shipstrial[1]!!.x + 1) && u2shipstrial[1]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x + 1 && u2shipstrial[3]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[0] == 1f && (i.y == u2shipstrial[1]!!.y - 1 || i.y == u2shipstrial[1]!!.y + 1) && u2shipstrial[1]!!.rot == 1 && i.x == u2shipstrial[1]!!.x) || (opacityu2[2] == 1f && i.y == u2shipstrial[3]!!.y + 1 && u2shipstrial[3]!!.rot == 1 && i.x == u2shipstrial[1]!!.x)) {
+                                                            showDialog = 3
+                                                        }
+                                                    }
+                                                    if (showDialog != 0) {
+                                                        Soundplayer.error(context1, sounds)
+                                                        for (i in u2ships.values) {
+                                                            u2shipstrial[i.id] = i
+                                                        }
+                                                    }
+                                                    if (showDialog == 0) {
+                                                        u2turn += 1; if (umode2 == 0) {
+                                                            umode2 = 1
+                                                        }; for (i in u2shipstrial.values) {
+                                                            u2ships[i.id] = i
+                                                        };ship1drag = false
                                                     }
                                                 }
-                                            } else if (u2shipstrial[1]?.rot == 1) {
-                                                for (i in (y1start - 3 * tileSizey / 2).toInt()..(y1start + 3 * tileSizey / 2).toInt()) {
-                                                    if (i < (y2start + tileSizey / 2) && i > (y2start - tileSizey / 2) && x1start == x2start) {
-                                                        showDialog = 2
-                                                    }
-                                                    if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x1start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[1]!!.x < 2))) {
-                                                        showDialog = 2
-
-                                                    }
-                                                    if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x1start == x4start) {
-                                                        showDialog = 2
-                                                    }
-                                                }
-                                            }
-                                            if (u2shipstrial[2]?.rot == 0) {
-                                                for (i in (x2start - tileSizex / 2).toInt()..(x2start + tileSizex / 2).toInt()) {
-                                                    if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y2start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[2]!!.y < 2))) {
-                                                        showDialog = 2
-
-                                                    }
-                                                    if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
-                                                        showDialog = 2
-                                                    }
-                                                }
-                                            } else if (u2shipstrial[2]?.rot == 1) {
-                                                for (i in (y2start - tileSizey / 2).toInt()..(y2start + tileSizey / 2).toInt()) {
-                                                    if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x2start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[2]!!.x < 2))) {
-                                                        showDialog = 2
-
-                                                    }
-                                                    if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x2start == x4start) {
-                                                        showDialog = 2
-                                                    }
-                                                }
-                                            }
-
-                                            if (u2shipstrial[4]?.rot == 0) {
-                                                for (i in (x4start - tileSizex / 2).toInt()..(x4start + tileSizex / 2).toInt()) {
-                                                    if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y4start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[4]!!.y < 2))) {
-                                                        showDialog = 2
-
-                                                    }
-
-                                                }
-                                            } else if (u2shipstrial[4]?.rot == 1) {
-                                                for (i in (y4start - tileSizey / 2).toInt()..(y4start + tileSizey / 2).toInt()) {
-                                                    if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x4start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[4]!!.x < 2))) {
-                                                        showDialog = 2
-
-                                                    }
-                                                }
-                                            }
-                                            for (i in u1attackedtiles) {
-                                                if ((opacityu2[0] == 1f && i.x == u2shipstrial[1]!!.x && i.y == u2shipstrial[1]!!.y) || (opacityu2[1] == 1f && i.x == u2shipstrial[2]!!.x && i.y == u2shipstrial[2]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x && i.y == u2shipstrial[3]!!.y) || (opacityu2[3] == 1f && i.x == u2shipstrial[4]!!.x && i.y == u2shipstrial[4]!!.y) || (opacityu2[0] == 1f && (i.x == u2shipstrial[1]!!.x - 1 || i.x == u2shipstrial[1]!!.x + 1) && u2shipstrial[1]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x + 1 && u2shipstrial[3]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[0] == 1f && (i.y == u2shipstrial[1]!!.y - 1 || i.y == u2shipstrial[1]!!.y + 1) && u2shipstrial[1]!!.rot == 1 && i.x == u2shipstrial[1]!!.x) || (opacityu2[2] == 1f && i.y == u2shipstrial[3]!!.y + 1 && u2shipstrial[3]!!.rot == 1 && i.x == u2shipstrial[1]!!.x)) {
-                                                    showDialog = 3
-                                                }
-                                            }
-                                            if (showDialog != 0) {
-                                                for (i in u2ships.values) {
-                                                    u2shipstrial[i.id] = i
-                                                }
-                                            }
-                                            if (showDialog == 0) {
-                                                u2turn += 1; if (umode2 == 0) {
-                                                    umode2 = 1
-                                                }; for (i in u2shipstrial.values) {
-                                                    u2ships[i.id] = i
-                                                };ship1drag = false
-                                            }
+                                            },
+                                            modifier = Modifier.background(Color.Cyan)
+                                                .size(100.dp, 30.dp)
+                                        ) {
+                                            Text(
+                                                "SAVE",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center
+                                            )
                                         }
-                                    },
-                                        modifier = Modifier.background(Color.Cyan)
-                                            .size(100.dp, 30.dp)
-                                    ) {
-                                        Text(
-                                            "SAVE",
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            textAlign = TextAlign.Center
-                                        )
+
+                                    }
+                                    if (umode2==0) {
+                                        Spacer(Modifier.width(20.dp))
+                                        IconButton(
+                                            onClick = {Soundplayer.click(context1, sounds);
+                                                autobot(
+                                                    2,
+                                                    tile1,
+                                                    tileSizex,
+                                                    tileSizey,
+                                                    opacityu2
+                                                ); autou2 = true;
+                                            },
+                                            modifier = Modifier.background(Color.Cyan)
+                                                .size(100.dp, 30.dp)
+                                        ) {
+                                            Text(
+                                                "AUTO",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -3938,7 +4024,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         var offsetX by remember { mutableStateOf(0.01f) }
                         var offsetY by remember { mutableStateOf(0.01f) }
                         var rot1 by remember { mutableStateOf(0) }
-                        if (umode2 != 0) {
+                        if (umode2 != 0  || autou2) {
                             for (i in u2ships.values) {
                                 if (i.id == 1) {
                                     offsetX = i.xcoord
@@ -3948,13 +4034,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                             }
                         }
                         IconButton(
-                            onClick = { if (opacityu2[0] != 0.5f) rot1 = 1 - rot1; counter = 1 },
+                            onClick = {Soundplayer.rotate(context1, sounds); if (opacityu2[0] != 0.5f) rot1 = 1 - rot1; counter = 1 },
                             modifier = Modifier
                                 .size(130.dp)
                                 .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                                 .pointerInput(Unit) {
                                     detectDragGestures(
                                         onDragEnd = {
+                                            Soundplayer.pop(context1, sounds)
                                             var min = 10000.toDouble()
 
                                             var minx = 0.001f
@@ -4039,7 +4126,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         var offsetY by remember { mutableStateOf(0.01f) }
                         var rot by remember { mutableStateOf(0) }
 
-                        if (umode2 != 0) {
+                        if (umode2 != 0|| autou2) {
                             for (i in u2ships.values) {
                                 if (i.id == 2) {
                                     offsetX = i.xcoord
@@ -4049,13 +4136,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                             }
                         }
                         IconButton(
-                            onClick = { if (opacityu2[1] != 0.5f) rot = 1 - rot; counter = 1 },
+                            onClick = {Soundplayer.rotate(context1, sounds); if (opacityu2[1] != 0.5f) rot = 1 - rot; counter = 1 },
                             modifier = Modifier
                                 .size(60.dp)
                                 .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                                 .pointerInput(Unit) {
                                     detectDragGestures(
                                         onDragEnd = {
+                                            Soundplayer.pop(context1, sounds)
                                             var min = 10000.toDouble()
 
                                             var minx = 0.01f
@@ -4122,7 +4210,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         var offsetX by remember { mutableStateOf(0.01f) }
                         var offsetY by remember { mutableStateOf(0.01f) }
                         var rot2 by remember { mutableStateOf(0) }
-                        if (umode2 != 0) {
+                        if (umode2 != 0 || autou2) {
                             for (i in u2ships.values) {
                                 if (i.id == 3) {
                                     offsetX = i.xcoord
@@ -4132,13 +4220,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                             }
                         }
                         IconButton(
-                            onClick = { if (opacityu2[2] != 0.5f) rot2 = 1 - rot2; counter = 1 },
+                            onClick = {Soundplayer.rotate(context1, sounds); if (opacityu2[2] != 0.5f) rot2 = 1 - rot2; counter = 1 },
                             modifier = Modifier
                                 .size(100.dp)
                                 .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                                 .pointerInput(Unit) {
                                     detectDragGestures(
                                         onDragEnd = {
+                                            Soundplayer.pop(context1, sounds)
                                             val shipOffsetInBox = Offset(offsetX, offsetY)
                                             var min = 10000.toDouble()
 
@@ -4231,7 +4320,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         var offsetX by remember { mutableStateOf(0.01f) }
                         var offsetY by remember { mutableStateOf(0.01f) }
                         var rot3 by remember { mutableStateOf(0) }
-                        if (umode2 != 0) {
+                        if (umode2 != 0 || autou2) {
                             for (i in u2ships.values) {
                                 if (i.id == 4) {
                                     offsetX = i.xcoord
@@ -4241,13 +4330,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                             }
                         }
                         IconButton(
-                            onClick = { if (opacityu2[3] != 0.5f) rot3 = 1 - rot3; counter = 1 },
+                            onClick = {Soundplayer.rotate(context1, sounds); if (opacityu2[3] != 0.5f) rot3 = 1 - rot3; counter = 1 },
                             modifier = Modifier
                                 .size(60.dp)
                                 .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                                 .pointerInput(Unit) {
                                     detectDragGestures(
                                         onDragEnd = {
+                                            Soundplayer.pop(context1, sounds)
                                             var min = 10000.toDouble()
 
                                             var minx = 0.01f
@@ -4348,8 +4438,33 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                 modifier = Modifier.fillMaxSize(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                    if (umode2==0) {
 
+                                        IconButton(
+                                            onClick = {Soundplayer.click(context1, sounds);
+                                                autobot(
+                                                    1,
+                                                    tile1,
+                                                    tileSizex,
+                                                    tileSizey,
+                                                    opacityu1
+                                                ); autou1 = true;
+                                            },
+                                            modifier = Modifier.background(Color.Cyan)
+                                                .size(100.dp, 30.dp)
+                                        ) {
+                                            Text(
+                                                "OꓕꓵⱯ",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                        Spacer(Modifier.width(20.dp))
+                                    }
                                     if (ship1drag1 && ship2drag1 && ship3drag1 && ship4drag1) {
+
                                         IconButton(
                                             onClick = {
                                                 val x1start = u1shipstrial[1]?.xcoord ?: -1f
@@ -4447,18 +4562,26 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                         }
                                                     }
                                                     if (showDialog != 0) {
+                                                        Soundplayer.error(context1, sounds)
+
                                                         for (i in u1ships.values) {
                                                             u1shipstrial[i.id] = i
                                                         }
                                                     }
                                                     if (showDialog == 0) {
+                                                        Soundplayer.click(context1, sounds)
                                                         u1turn += 1; if (umode1 == 0) {
                                                             umode1 = 1
                                                         }; for (i in u1shipstrial.values) {
                                                             u1ships[i.id] = i
-                                                        };if (np==1){
-                                                            botplacedships(tile1, tileSizex, tileSizey)
-                                                            u2turn+=1
+                                                        };if (np == 1 && umode2 == 0) {
+                                                            botplacedships(
+                                                                tile1,
+                                                                tileSizex,
+                                                                tileSizey,
+                                                                opacityu2
+                                                            )
+                                                            u2turn += 1
                                                         };ship1drag1 = false
                                                     }
                                                 }
@@ -4474,6 +4597,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                             )
                                         }
                                     }
+                                }
                                     Text(
                                         "ɯǝɥʇ ǝɔɐןd oʇ sdı̣ɥs doɹp puɐ ƃɐɹꓷ",
                                         fontSize = 15.sp,
@@ -4496,6 +4620,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
             }
             if (cannons1==0 && cannons2==0){
+                refresh.value=true
 
             }
         }
@@ -4526,7 +4651,7 @@ fun MyDialogDemo(text: String):Int {
 
 
 }
-fun botplacedships(tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Float ) {
+fun botplacedships(tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Float, opacityu2: List<Float> ) {
     for (id in 1..4){
         var tile=tile1.random()
         var rot= Random.nextInt(2)
@@ -4595,6 +4720,27 @@ fun botplacedships(tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Fl
                 }
             }
         }
+        if (u2shipstrial[4]?.rot == 0) {
+            for (i in (x4start - tileSizex / 2).toInt()..(x4start + tileSizex / 2).toInt()) {
+                if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y4start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[4]!!.y < 2))) {
+                    showDialog = 2
+
+                }
+
+            }
+        } else if (u2shipstrial[4]?.rot == 1) {
+            for (i in (y4start - tileSizey / 2).toInt()..(y4start + tileSizey / 2).toInt()) {
+                if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x4start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[4]!!.x < 2))) {
+                    showDialog = 2
+
+                }
+            }
+        }
+        for (i in u1attackedtiles) {
+            if ((opacityu2[0] == 1f && i.x == u2shipstrial[1]!!.x && i.y == u2shipstrial[1]!!.y) || (opacityu2[1] == 1f && i.x == u2shipstrial[2]!!.x && i.y == u2shipstrial[2]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x && i.y == u2shipstrial[3]!!.y) || (opacityu2[3] == 1f && i.x == u2shipstrial[4]!!.x && i.y == u2shipstrial[4]!!.y) || (opacityu2[0] == 1f && (i.x == u2shipstrial[1]!!.x - 1 || i.x == u2shipstrial[1]!!.x + 1) && u2shipstrial[1]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x + 1 && u2shipstrial[3]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[0] == 1f && (i.y == u2shipstrial[1]!!.y - 1 || i.y == u2shipstrial[1]!!.y + 1) && u2shipstrial[1]!!.rot == 1 && i.x == u2shipstrial[1]!!.x) || (opacityu2[2] == 1f && i.y == u2shipstrial[3]!!.y + 1 && u2shipstrial[3]!!.rot == 1 && i.x == u2shipstrial[1]!!.x)) {
+                showDialog = 3
+            }
+        }
 
     }
     if (showDialog==0){
@@ -4604,10 +4750,233 @@ fun botplacedships(tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Fl
             u2ships[i.id] = i
         };
 
-        println(u2ships)
+
     }
     else{
-        botplacedships(tile1,tileSizex,tileSizey)
+        botplacedships(tile1,tileSizex,tileSizey,opacityu2)
+    }
+}
+fun autobot(playerno: Int, tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Float, opacityu2: List<Float>) {
+    if (playerno==2) {
+        for (id in 1..4) {
+            var tile = tile1.random()
+            var rot = Random.nextInt(2)
+            u2shipstrial[id] = Shipposition(
+                id,
+                if (id == 1) 3; else if (id == 3) 2; else 1,
+                tile.col,
+                tile.row,
+                rot,
+                tile.x,
+                tile.y
+            )
+        }
+        var showDialog = 0
+        val x1start = u2shipstrial[1]?.xcoord ?: -1f
+        val y1start = u2shipstrial[1]?.ycoord ?: -1f
+        val x2start = u2shipstrial[2]?.xcoord ?: -1f
+        val y2start = u2shipstrial[2]?.ycoord ?: -1f
+        val x3start = u2shipstrial[3]?.xcoord ?: -1f
+        val y3start = u2shipstrial[3]?.ycoord ?: -1f
+        val x4start = u2shipstrial[4]?.xcoord ?: -1f
+        val y4start = u2shipstrial[4]?.ycoord ?: -1f
+
+        if (x1start == -1f || x2start == -1f || x3start == -1f || x4start == -1f || y1start == -1f || y2start == -1f || y3start == -1f || y4start == -1f || u2shipstrial[1]?.xcoord == 0.01f || u2shipstrial[2]?.xcoord == 0.01f || u2shipstrial[3]?.xcoord == 0.01f || u2shipstrial[4]?.xcoord == 0.01f || u2shipstrial[1]?.ycoord == 0.01f || u2shipstrial[2]?.ycoord == 0.01f || u2shipstrial[3]?.ycoord == 0.01f || u2shipstrial[4]?.ycoord == 0.01f) {
+            showDialog = 1
+        } else if (u2shipstrial[1] == null || u2shipstrial[2] == null || u2shipstrial[3] == null || u2shipstrial[4] == null) {
+            showDialog = 1
+        } else {
+            if (u2shipstrial[1]?.rot == 0) {
+                for (i in (x1start - 3 * tileSizex / 2).toInt()..(x1start + 3 * tileSizex / 2).toInt()) {
+                    if (i < (x2start + tileSizex / 2) && i > (x2start - tileSizex / 2) && y1start == y2start) {
+                        showDialog = 2
+                    }
+                    if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y1start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[1]!!.y < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                        showDialog = 2
+                    }
+                }
+            } else if (u2shipstrial[1]?.rot == 1) {
+                for (i in (y1start - 3 * tileSizey / 2).toInt()..(y1start + 3 * tileSizey / 2).toInt()) {
+                    if (i < (y2start + tileSizey / 2) && i > (y2start - tileSizey / 2) && x1start == x2start) {
+                        showDialog = 2
+                    }
+                    if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x1start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[1]!!.x < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x1start == x4start) {
+                        showDialog = 2
+                    }
+                }
+            }
+            if (u2shipstrial[2]?.rot == 0) {
+                for (i in (x2start - tileSizex / 2).toInt()..(x2start + tileSizex / 2).toInt()) {
+                    if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y2start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[2]!!.y < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                        showDialog = 2
+                    }
+                }
+            } else if (u2shipstrial[2]?.rot == 1) {
+                for (i in (y2start - tileSizey / 2).toInt()..(y2start + tileSizey / 2).toInt()) {
+                    if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x2start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[2]!!.x < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x2start == x4start) {
+                        showDialog = 2
+                    }
+                }
+            }
+            if (u2shipstrial[4]?.rot == 0) {
+                for (i in (x4start - tileSizex / 2).toInt()..(x4start + tileSizex / 2).toInt()) {
+                    if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y4start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[4]!!.y < 2))) {
+                        showDialog = 2
+
+                    }
+
+                }
+            } else if (u2shipstrial[4]?.rot == 1) {
+                for (i in (y4start - tileSizey / 2).toInt()..(y4start + tileSizey / 2).toInt()) {
+                    if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x4start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[4]!!.x < 2))) {
+                        showDialog = 2
+
+                    }
+                }
+            }
+            for (i in u1attackedtiles) {
+                if ((opacityu2[0] == 1f && i.x == u2shipstrial[1]!!.x && i.y == u2shipstrial[1]!!.y) || (opacityu2[1] == 1f && i.x == u2shipstrial[2]!!.x && i.y == u2shipstrial[2]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x && i.y == u2shipstrial[3]!!.y) || (opacityu2[3] == 1f && i.x == u2shipstrial[4]!!.x && i.y == u2shipstrial[4]!!.y) || (opacityu2[0] == 1f && (i.x == u2shipstrial[1]!!.x - 1 || i.x == u2shipstrial[1]!!.x + 1) && u2shipstrial[1]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x + 1 && u2shipstrial[3]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[0] == 1f && (i.y == u2shipstrial[1]!!.y - 1 || i.y == u2shipstrial[1]!!.y + 1) && u2shipstrial[1]!!.rot == 1 && i.x == u2shipstrial[1]!!.x) || (opacityu2[2] == 1f && i.y == u2shipstrial[3]!!.y + 1 && u2shipstrial[3]!!.rot == 1 && i.x == u2shipstrial[1]!!.x)) {
+                    showDialog = 3
+                }
+            }
+
+        }
+        if (showDialog == 0) {
+             for (i in u2shipstrial.values) {
+                u2ships[i.id] = i
+            };
+
+
+        } else {
+            autobot(2,tile1, tileSizex, tileSizey, opacityu2)
+        }
+    }
+    else if (playerno==1) {
+        for (id in 1..4) {
+            var tile = tile1.random()
+            var rot = Random.nextInt(2)
+            u1shipstrial[id] = Shipposition(
+                id,
+                if (id == 1) 3; else if (id == 3) 2; else 1,
+                tile.col,
+                tile.row,
+                rot,
+                tile.x,
+                tile.y
+            )
+        }
+        var showDialog = 0
+        val x1start = u1shipstrial[1]?.xcoord ?: -1f
+        val y1start = u1shipstrial[1]?.ycoord ?: -1f
+        val x2start = u1shipstrial[2]?.xcoord ?: -1f
+        val y2start = u1shipstrial[2]?.ycoord ?: -1f
+        val x3start = u1shipstrial[3]?.xcoord ?: -1f
+        val y3start = u1shipstrial[3]?.ycoord ?: -1f
+        val x4start = u1shipstrial[4]?.xcoord ?: -1f
+        val y4start = u1shipstrial[4]?.ycoord ?: -1f
+
+        if (x1start == -1f || x2start == -1f || x3start == -1f || x4start == -1f || y1start == -1f || y2start == -1f || y3start == -1f || y4start == -1f || u1shipstrial[1]?.xcoord == 0.01f || u1shipstrial[2]?.xcoord == 0.01f || u1shipstrial[3]?.xcoord == 0.01f || u1shipstrial[4]?.xcoord == 0.01f || u1shipstrial[1]?.ycoord == 0.01f || u1shipstrial[2]?.ycoord == 0.01f || u1shipstrial[3]?.ycoord == 0.01f || u1shipstrial[4]?.ycoord == 0.01f) {
+            showDialog = 1
+        } else if (u1shipstrial[1] == null || u1shipstrial[2] == null || u1shipstrial[3] == null || u1shipstrial[4] == null) {
+            showDialog = 1
+        } else {
+            if (u1shipstrial[1]?.rot == 0) {
+                for (i in (x1start - 3 * tileSizex / 2).toInt()..(x1start + 3 * tileSizex / 2).toInt()) {
+                    if (i < (x2start + tileSizex / 2) && i > (x2start - tileSizex / 2) && y1start == y2start) {
+                        showDialog = 2
+                    }
+                    if ((u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y1start == y3start) || (u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u1shipstrial[3]!!.y - u1shipstrial[1]!!.y < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                        showDialog = 2
+                    }
+                }
+            } else if (u1shipstrial[1]?.rot == 1) {
+                for (i in (y1start - 3 * tileSizey / 2).toInt()..(y1start + 3 * tileSizey / 2).toInt()) {
+                    if (i < (y2start + tileSizey / 2) && i > (y2start - tileSizey / 2) && x1start == x2start) {
+                        showDialog = 2
+                    }
+                    if ((u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x1start == x3start) || (u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u1shipstrial[3]!!.x - u1shipstrial[1]!!.x < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x1start == x4start) {
+                        showDialog = 2
+                    }
+                }
+            }
+            if (u1shipstrial[2]?.rot == 0) {
+                for (i in (x2start - tileSizex / 2).toInt()..(x2start + tileSizex / 2).toInt()) {
+                    if ((u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y2start == y3start) || (u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u1shipstrial[3]!!.y - u1shipstrial[2]!!.y < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                        showDialog = 2
+                    }
+                }
+            } else if (u1shipstrial[2]?.rot == 1) {
+                for (i in (y2start - tileSizey / 2).toInt()..(y2start + tileSizey / 2).toInt()) {
+                    if ((u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x2start == x3start) || (u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u1shipstrial[3]!!.x - u1shipstrial[2]!!.x < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x2start == x4start) {
+                        showDialog = 2
+                    }
+                }
+            }
+            if (u1shipstrial[4]?.rot == 0) {
+                for (i in (x4start - tileSizex / 2).toInt()..(x4start + tileSizex / 2).toInt()) {
+                    if ((u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y4start == y3start) || (u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u1shipstrial[3]!!.y - u1shipstrial[4]!!.y < 2))) {
+                        showDialog = 2
+
+                    }
+
+                }
+            } else if (u1shipstrial[4]?.rot == 1) {
+                for (i in (y4start - tileSizey / 2).toInt()..(y4start + tileSizey / 2).toInt()) {
+                    if ((u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x4start == x3start) || (u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u1shipstrial[3]!!.x - u1shipstrial[4]!!.x < 2))) {
+                        showDialog = 2
+
+
+                    }
+                }
+            }
+            for (i in u2attackedtiles) {
+                if ((opacityu2[0] == 1f && i.x == u1shipstrial[1]!!.x && i.y == u1shipstrial[1]!!.y) || (opacityu2[1] == 1f && i.x == u1shipstrial[2]!!.x && i.y == u1shipstrial[2]!!.y) || (opacityu2[2] == 1f && i.x == u1shipstrial[3]!!.x && i.y == u1shipstrial[3]!!.y) || (opacityu2[3] == 1f && i.x == u1shipstrial[4]!!.x && i.y == u1shipstrial[4]!!.y) || (opacityu2[0] == 1f && (i.x == u1shipstrial[1]!!.x - 1 || i.x == u1shipstrial[1]!!.x + 1) && u1shipstrial[1]!!.rot == 0 && i.y == u1shipstrial[1]!!.y) || (opacityu2[2] == 1f && i.x == u1shipstrial[3]!!.x + 1 && u1shipstrial[3]!!.rot == 0 && i.y == u1shipstrial[1]!!.y) || (opacityu2[0] == 1f && (i.y == u1shipstrial[1]!!.y - 1 || i.y == u1shipstrial[1]!!.y + 1) && u1shipstrial[1]!!.rot == 1 && i.x == u1shipstrial[1]!!.x) || (opacityu2[2] == 1f && i.y == u1shipstrial[3]!!.y + 1 && u1shipstrial[3]!!.rot == 1 && i.x == u1shipstrial[1]!!.x)) {
+                    showDialog = 3
+                }
+            }
+
+        }
+        if (showDialog == 0) {
+            for (i in u1shipstrial.values) {
+                u1ships[i.id] = i
+            };
+
+
+        } else {
+            autobot(1,tile1, tileSizex, tileSizey,opacityu2)
+        }
     }
 }
 fun botchooseattack(difficulty: Int, tile: List<Tile>): Tile{
