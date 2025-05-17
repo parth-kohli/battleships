@@ -2,11 +2,14 @@ package com.example.battleships
 
 import android.animation.ValueAnimator
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Paint
 import android.graphics.Paint.Align
 import android.icu.text.RelativeDateTimeFormatter
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import androidx.compose.foundation.layout.*
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -29,6 +32,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -65,6 +70,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
@@ -79,6 +85,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -87,6 +94,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -97,10 +106,15 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.Dialog
+import androidx.core.view.drawToBitmap
 import kotlinx.coroutines.delay
+import java.io.File
+import java.io.FileOutputStream
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.random.Random
+
 var umode1=0
 var umode2=0
 var user1=""
@@ -138,7 +152,8 @@ data class PlacedShip(
 data class AttackedTile(val x: Int, val y: Int)
 var u1attackedtiles= mutableListOf<AttackedTile>()
 var u2attackedtiles= mutableListOf<AttackedTile>()
-
+var tourn1= mutableMapOf(1 to 0, 2 to 0, 3 to 0, 4 to 0, 5 to 0, 6 to 0, 7 to 0)
+var tourn2=mutableMapOf(1 to 0, 2 to 0, 3 to 0, 4 to 0, 5 to 0, 6 to 0, 7 to 0)
 fun Modifier.drawVerticalScrollbar(listState: LazyListState) = drawBehind {
     val firstVisibleItemIndex = listState.firstVisibleItemIndex
     val itemCount = listState.layoutInfo.totalItemsCount
@@ -308,6 +323,16 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                             IconButton(onClick = { screen_no = 2; last_open.addLast(0)}, modifier = Modifier.size(70.dp).clip(
                                 CircleShape).background(Color(246,216,21,255))) {
                                     Icon(imageVector = Icons.Outlined.Settings, contentDescription = "Settings", tint=contrast_color, modifier = Modifier.size(60.dp))
+                            }
+
+                        }
+                    }
+                    Column {
+                        IconButton(onClick = { screen_no = 30; last_open.addLast(0) }, modifier = Modifier.size(80.dp).clip(
+                            CircleShape).background(fore_color)) {
+                            IconButton(onClick = { screen_no =30; last_open.addLast(0)}, modifier = Modifier.size(70.dp).clip(
+                                CircleShape).background(Color(246,216,21,255))) {
+                                Icon(painter = painterResource(R.drawable.history), contentDescription = "History", tint=contrast_color, modifier = Modifier.size(60.dp))
                             }
 
                         }
@@ -860,7 +885,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Absolute.Center){
                 for (i in 4..6) {
                     IconButton(onClick = {rows=j; cols=i; grid1= generateGrid(rows,cols,enable_tiles); grid2=
-                        generateGrid(rows, cols,enable_tiles); screen_no=10}, modifier=Modifier.height(180.dp).width((110+21*(i-4)).dp).clip(RectangleShape).background(contrast_color) ) {
+                        generateGrid(rows, cols,enable_tiles);  if (np==1) screen_no=12;else if (rounds==1 ) screen_no=10; else if (rounds>1) screen_no=11}, modifier=Modifier.height(180.dp).width((110+21*(i-4)).dp).clip(RectangleShape).background(contrast_color) ) {
                         Row(Modifier.padding(10.dp).fillMaxSize(), horizontalArrangement = Arrangement.Center) {
                             for (k in 1..i) {
                                 Column(Modifier.padding(5.dp)) {
@@ -1292,14 +1317,12 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
             }
             score1 = ship11 * 150 + ship12 * 450 + ship13 * 300 + ship14 * 450
             score2 = ship21 * 150 + ship22 * 450 + ship23 * 300 + ship24 * 450
-            println(score1)
-            println(score2)
-            println(u1hitships)
-            println(u2hitships)
+
             var winner = user1
             var loser = user2
             var wscore = score1
             var lscore = score2
+
             Column(
                 modifier = Modifier.fillMaxSize().background(Color(0, 0, 0, 100))
                     ,
@@ -1332,6 +1355,570 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
+                                    winner=""
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+
+                                    Text(
+                                        "$user1          $score1".toUpperCase(),
+                                        color = fccolor1,
+                                        fontSize = 25.sp,
+                                        fontFamily = FontFamily(
+                                            Font(
+                                                R.font.galgony,
+                                                FontWeight.Bold
+                                            )
+                                        )
+                                    )
+
+
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                    Text(
+                                        if (np==1) "BOT          $score2"; else "$user2          $score2".toUpperCase(),
+                                        color = fccolor1,
+                                        fontSize = 25.sp,
+                                        fontFamily = FontFamily(
+                                            Font(
+                                                R.font.galgony,
+                                                FontWeight.Normal
+                                            )
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+
+                                } else {
+                                    if (score2 > score1) {
+                                        winner = user2
+                                        loser = user1
+                                        wscore = score2
+                                        lscore = score1
+                                    }
+                                    if (winner==""){
+                                        winner="BOT"
+                                    }
+                                    Row(modifier.fillMaxWidth().background(Color(227,182,57,255)), horizontalArrangement = Arrangement.Center) {
+                                        Text(
+                                            "THE WINNER IS ${winner.toUpperCase()}",
+                                            fontSize = 30.sp,
+                                            color = Color.Black,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+
+                                    Text(
+                                        "$user1          $score1".toUpperCase(),
+                                        color = fccolor1,
+                                        fontSize = 25.sp,
+                                        fontFamily = FontFamily(
+                                            Font(
+                                                R.font.galgony,
+                                                FontWeight.Bold
+                                            )
+                                        )
+                                    )
+
+
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                    Text(
+                                        if (np==1) "BOT          $score2"; else "$user2          $score2".toUpperCase().toUpperCase(),
+                                        color = fccolor1,
+                                        fontSize = 25.sp,
+                                        fontFamily = FontFamily(
+                                            Font(
+                                                R.font.galgony,
+                                                FontWeight.Normal
+                                            )
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                        Row(modifier=Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center){
+                            if (np!=1) {
+                                IconButton(
+                                    onClick = {
+                                        if (winner != "") score_update(
+                                            Context1,
+                                            winner
+                                        );screen_no = 20;
+                                    },
+                                    modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                                        .background(Color.Black)
+                                        .size(150.dp, 60.dp)
+                                ) {
+                                    Text(
+                                        "PLAY AGAIN",
+                                        textAlign = TextAlign.Center,
+                                        color = Color.White, fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(20.dp))
+                            }
+                        IconButton(
+                            onClick = {if (winner!="" && np!=1) score_update(Context1, winner); if (np==1 && score1>score2) bot_update(Context1, user1);screen_no = 0; },
+                            modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                                .background(Color.White)
+                                .size(150.dp, 60.dp)
+                        ) {
+                            Text(
+                                "HOME",
+                                textAlign = TextAlign.Center,
+                                color = Color.Black, fontWeight = FontWeight.Bold
+                            )
+                        }
+                            }
+
+                    }
+                }
+            }
+            val context = LocalContext.current
+            CaptureScreenshotOnGameEnd( captureTrigger = true) { bitmap ->
+                saveBitmapToStorage(context, bitmap) // write it to storage
+            }
+
+
+        }
+    }
+    if (screen_no==11){
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column {
+                Spacer(modifier = Modifier.height(15.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(60.dp)
+                        .background(if (u1mode == 1) Color.Red; else Color.White),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+
+                    Spacer(modifier = Modifier.width(30.dp))
+                    if (cannons1 == 0) {
+                        umode1 = 2
+                        u1mode = 2
+                        umode2 = 1
+                        u2mode = 1
+                    }
+                    if (cannons2 == 0) {
+                        umode1 = 1
+                        u1mode = 1
+                        umode2 = 2
+                        u2mode = 2
+                    }
+
+                    IconButton(
+                        onClick = {
+                            if (umode1 == 0 || u1turn != u2turn) {
+                            }; else if (u1mode == 1) {
+                                u1mode = 2; umode1 = 2;
+                            } else {
+                                u1mode = 1; umode1 = 1
+                            }
+                        }, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                            .background(
+                                if (u1mode == 1 && umode1 != 0) Color(
+                                    211,
+                                    110,
+                                    110,
+                                    255
+                                ) else Color.DarkGray
+                            )
+                            .size(100.dp, 30.dp)
+                    ) {
+                        if (u1mode == 1) {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.compass),
+                                    contentDescription = "Check",
+                                    tint = Color.Black
+                                )
+                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.End
+                            ) {
+
+
+                                Icon(
+                                    painter = painterResource(R.drawable.electric),
+                                    contentDescription = "Check",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+
+                    }
+                    Spacer(modifier = Modifier.width(20.dp))
+                    if (umode1 == 0) {
+                        Text("⅄OꓶԀƎꓷ", color = Color.White, fontWeight = FontWeight.Bold)
+                    } else if (u1mode == 1) {
+                        Text("ꓘƆⱯꓕꓕⱯ", color = Color.White, fontWeight = FontWeight.Bold)
+                    } else {
+                        Text("ꓷNƎℲƎꓷ", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(30.dp))
+                    for (i in 0..(2 - cannons1)) {
+                        Box(
+                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                                .background(Color.Black)
+                        ) {}
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+                    for (i in 0..cannons1 - 1) {
+
+                        Box(
+                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                                .background(if (u1mode == 1 && umode1 != 0) Color.White else Color.Black)
+                        ) {}
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+
+
+                }
+
+                grid(grid1, grid2)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(60.dp)
+                        .background(if (u2mode == 1) Color.Red; else Color.White),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(modifier = Modifier.width(30.dp))
+                    for (i in 0..cannons2 - 1) {
+
+                        Box(
+                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                                .background(if (u2mode == 1) Color.White else Color.Black)
+                        ) {}
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+                    for (i in 0..(2 - cannons2)) {
+                        Box(
+                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                                .background(Color.Black)
+                        ) {}
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+                    Spacer(modifier = Modifier.width(20.dp))
+                    if (umode2 == 0) {
+                        Text("DEPLOY", color = Color.White, fontWeight = FontWeight.Bold)
+                    } else if (u2mode == 1) {
+                        Text("ATTACK", color = Color.White, fontWeight = FontWeight.Bold)
+                    } else {
+                        Text("DEFEND", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(20.dp))
+                    IconButton(
+                        onClick = {
+                            if (umode2 == 0 || u1turn == u2turn) {
+                            }; else if (u2mode == 1) {
+                                u2mode = 2; umode2 = 2;
+                            } else {
+                                u2mode = 1; umode2 = 1; }
+                        }, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                            .background(if (u2mode == 1) Color(211, 110, 110, 255) else Color.Black)
+                            .size(100.dp, 30.dp)
+                    ) {
+                        if (u2mode == 1) {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.End
+                            ) {
+
+                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+                                Icon(
+                                    painter = painterResource(R.drawable.compass),
+                                    contentDescription = "Check",
+                                    tint = Color.Black
+                                )
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.electric),
+                                    contentDescription = "Check",
+                                    tint = Color.White
+                                )
+                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+
+                            }
+                        }
+
+                    }
+
+                }
+
+            }
+        }
+        if (cannons1 == 0 && cannons2 == 0) {
+            println(rounds)
+            var score1 = 0
+            var score2 = 0
+            var ship11 = 0
+            var ship12 = 0
+            var ship13 = 0
+            var ship14 = 0
+            var ship21 = 0
+            var ship22 = 0
+            var ship23 = 0
+            var ship24 = 0
+            for (i in u1hitships) {
+                if (i.id == 1) {
+                    ship21 = 1
+                }
+                if (i.id == 2) {
+                    ship22 = 1
+                }
+                if (i.id == 3) {
+                    ship23 = 1
+                }
+                if (i.id == 4) {
+                    ship24 = 1
+                }
+            }
+            for (i in u2hitships) {
+                if (i.id == 1) {
+                    ship11 = 1
+                }
+                if (i.id == 2) {
+                    ship12 = 1
+                }
+                if (i.id == 3) {
+                    ship13 = 1
+                }
+                if (i.id == 4) {
+                    ship14 = 1
+                }
+            }
+            score1 = ship11 * 150 + ship12 * 450 + ship13 * 300 + ship14 * 450
+            score2 = ship21 * 150 + ship22 * 450 + ship23 * 300 + ship24 * 450
+
+            var winner = user1
+            var loser = user2
+            var wscore = score1
+            var lscore = score2
+            if (score2 > score1) {
+                winner = user2
+                loser = user1
+                wscore = score2
+                lscore = score1
+                tourn2[rounds]=1
+            }
+            else{
+                tourn1[rounds]=1
+            }
+
+            Column(
+                modifier = Modifier.fillMaxSize().background(Color(0, 0, 0, 100))
+                ,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+
+
+                    var pause by remember { mutableStateOf(false) }
+                    LaunchedEffect(cannons2) {
+                        if (cannons1 == 0 && cannons2 == 0 && rounds!=0){
+                            pause=true
+                            delay(2000)
+                            screen_no = 21
+                            pause=false
+
+                        }
+
+                    }
+                    LaunchedEffect(cannons1) {
+                        if (cannons1 == 0 && cannons2 == 0 && rounds!=0){
+                            pause=true
+                            delay(2000)
+                            screen_no = 21
+                            pause=false
+
+                        }
+
+                    }
+                if (rounds==0) {
+                    Box(
+                        modifier = Modifier.clip(RoundedCornerShape(30.dp)).size(400.dp, 400.dp)
+                            .background(Color.Cyan)
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.Top,
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Box(
+
+                                modifier = Modifier.size(400.dp, 300.dp)
+                                    .clip(RoundedCornerShape(30.dp))
+                                    .background(Color.White)
+                            ) {
+                                var score11= (1..7).sumOf { tourn1[it] ?: 0 }
+                                var score22= (1..7).sumOf { tourn2[it] ?: 0 }
+                                Column(
+
+
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+
+                                    if (score11 == score22) {
+                                        Row(
+                                            modifier.fillMaxWidth()
+                                                .background(Color(227, 182, 57, 255)),
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Text(
+                                                "IT'S A TIE",
+                                                fontSize = 30.sp,
+                                                color = Color.Black,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                        winner = ""
+                                        Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+
+                                        Text(
+                                            "$user1          $score1".toUpperCase(),
+                                            color = fccolor1,
+                                            fontSize = 25.sp,
+                                            fontFamily = FontFamily(
+                                                Font(
+                                                    R.font.galgony,
+                                                    FontWeight.Bold
+                                                )
+                                            )
+                                        )
+
+
+                                        Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                        Text(
+                                            "$user2          $score2".toUpperCase(),
+                                            color = fccolor1,
+                                            fontSize = 25.sp,
+                                            fontFamily = FontFamily(
+                                                Font(
+                                                    R.font.galgony,
+                                                    FontWeight.Normal
+                                                )
+                                            )
+                                        )
+                                        Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+
+                                    } else {
+                                        if (score22 > score11) {
+                                            winner = user2
+                                            loser = user1
+                                            wscore = score2
+                                            lscore = score1
+                                        }
+                                        else{
+                                            winner=user1
+                                        }
+                                        Row(
+                                            modifier.fillMaxWidth()
+                                                .background(Color(227, 182, 57, 255)),
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Text(
+                                                "THE WINNER IS ${winner.toUpperCase()}",
+                                                fontSize = 30.sp,
+                                                color = Color.Black,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+
+                                        Text(
+                                            "$user1          $score11".toUpperCase(),
+                                            color = fccolor1,
+                                            fontSize = 25.sp,
+                                            fontFamily = FontFamily(
+                                                Font(
+                                                    R.font.galgony,
+                                                    FontWeight.Bold
+                                                )
+                                            )
+                                        )
+
+
+                                        Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                        Text(
+                                            "$user2          $score22".toUpperCase(),
+                                            color = fccolor1,
+                                            fontSize = 25.sp,
+                                            fontFamily = FontFamily(
+                                                Font(
+                                                    R.font.galgony,
+                                                    FontWeight.Normal
+                                                )
+                                            )
+                                        )
+                                        Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                IconButton(
+                                    onClick = { screen_no = 0; },
+                                    modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                                        .background(Color.White)
+                                        .size(150.dp, 60.dp)
+                                ) {
+                                    Text(
+                                        "HOME",
+                                        textAlign = TextAlign.Center,
+                                        color = Color.Black, fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                        }
+                    }
+                }
+                 else   if (pause){
+                        Box(
+
+                            modifier = Modifier.size(400.dp, 300.dp)
+                                .clip(RoundedCornerShape(30.dp))
+                                .background(Color.White)
+                        ) {
+                            Column(
+
+
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                if (score2 == score1) {
+                                    Row(
+                                        modifier.fillMaxWidth()
+                                            .background(Color(227, 182, 57, 255)),
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            "IT'S A TIE",
+                                            fontSize = 30.sp,
+                                            color = Color.Black,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    winner = ""
                                     Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
 
                                     Text(
@@ -1368,7 +1955,12 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                         wscore = score2
                                         lscore = score1
                                     }
-                                    Row(modifier.fillMaxWidth().background(Color(227,182,57,255)), horizontalArrangement = Arrangement.Center) {
+                                    score_update(Context1, winner)
+                                    Row(
+                                        modifier.fillMaxWidth()
+                                            .background(Color(227, 182, 57, 255)),
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
                                         Text(
                                             "THE WINNER IS ${winner.toUpperCase()}",
                                             fontSize = 30.sp,
@@ -1407,42 +1999,388 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 }
                             }
                         }
+                    val context = LocalContext.current
+                    val lifecycleOwner = LocalLifecycleOwner.current
+                    val resultView = LocalView.current
+                    val bitmap = resultView.drawToBitmap()
+                    saveBitmapToStorage(context, bitmap)
+
+
+                }
+
+            }
+
+        }
+
+    }
+    if (screen_no==12){
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column {
+                Spacer(modifier = Modifier.height(15.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(60.dp)
+                        .background(if (u1mode == 1) Color.Red; else Color.White),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+
+                    Spacer(modifier = Modifier.width(30.dp))
+                    if (cannons1 == 0) {
+                        umode1 = 2
+                        u1mode = 2
+                        umode2 = 1
+                        u2mode = 1
+                    }
+                    if (cannons2 == 0) {
+                        umode1 = 1
+                        u1mode = 1
+                        umode2 = 2
+                        u2mode = 2
+                    }
+
+                    IconButton(
+                        onClick = {
+                            if (umode1 == 0 || u1turn != u2turn) {
+                            }; else if (u1mode == 1) {
+                                u1mode = 2; umode1 = 2;
+                            } else {
+                                u1mode = 1; umode1 = 1
+                            }
+                        }, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                            .background(
+                                if (u1mode == 1 && umode1 != 0) Color(
+                                    211,
+                                    110,
+                                    110,
+                                    255
+                                ) else Color.DarkGray
+                            )
+                            .size(100.dp, 30.dp)
+                    ) {
+                        if (u1mode == 1) {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.compass),
+                                    contentDescription = "Check",
+                                    tint = Color.Black
+                                )
+                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.End
+                            ) {
+
+
+                                Icon(
+                                    painter = painterResource(R.drawable.electric),
+                                    contentDescription = "Check",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+
+                    }
+                    Spacer(modifier = Modifier.width(20.dp))
+                    if (umode1 == 0) {
+                        Text("⅄OꓶԀƎꓷ", color = Color.White, fontWeight = FontWeight.Bold)
+                    } else if (u1mode == 1) {
+                        Text("ꓘƆⱯꓕꓕⱯ", color = Color.White, fontWeight = FontWeight.Bold)
+                    } else {
+                        Text("ꓷNƎℲƎꓷ", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(30.dp))
+                    for (i in 0..(2 - cannons1)) {
+                        Box(
+                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                                .background(Color.Black)
+                        ) {}
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+                    for (i in 0..cannons1 - 1) {
+
+                        Box(
+                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                                .background(if (u1mode == 1 && umode1 != 0) Color.White else Color.Black)
+                        ) {}
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+
+
+                }
+
+                grid(grid1, grid2)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(60.dp)
+                        .background(if (u2mode == 1) Color.Red; else Color.White),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(modifier = Modifier.width(30.dp))
+                    for (i in 0..cannons2 - 1) {
+
+                        Box(
+                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                                .background(if (u2mode == 1) Color.White else Color.Black)
+                        ) {}
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+                    for (i in 0..(2 - cannons2)) {
+                        Box(
+                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                                .background(Color.Black)
+                        ) {}
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+                    Spacer(modifier = Modifier.width(20.dp))
+                    if (umode2 == 0) {
+                        Text("DEPLOY", color = Color.White, fontWeight = FontWeight.Bold)
+                    } else if (u2mode == 1) {
+                        Text("ATTACK", color = Color.White, fontWeight = FontWeight.Bold)
+                    } else {
+                        Text("DEFEND", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(20.dp))
+                    IconButton(
+                        onClick = {
+                            if (umode2 == 0 || u1turn == u2turn) {
+                            }; else if (u2mode == 1) {
+                                u2mode = 2; umode2 = 2;
+                            } else {
+                                u2mode = 1; umode2 = 1; }
+                        }, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                            .background(if (u2mode == 1) Color(211, 110, 110, 255) else Color.Black)
+                            .size(100.dp, 30.dp)
+                    ) {
+                        if (u2mode == 1) {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.End
+                            ) {
+
+                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+                                Icon(
+                                    painter = painterResource(R.drawable.compass),
+                                    contentDescription = "Check",
+                                    tint = Color.Black
+                                )
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.electric),
+                                    contentDescription = "Check",
+                                    tint = Color.White
+                                )
+                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+
+                            }
+                        }
+
+                    }
+
+                }
+
+            }
+        }
+        if (cannons1 == 0 && cannons2 == 0) {
+            var score1 = 0
+            var score2 = 0
+            var ship11 = 0
+            var ship12 = 0
+            var ship13 = 0
+            var ship14 = 0
+            var ship21 = 0
+            var ship22 = 0
+            var ship23 = 0
+            var ship24 = 0
+            for (i in u1hitships) {
+                if (i.id == 1) {
+                    ship21 = 1
+                }
+                if (i.id == 2) {
+                    ship22 = 1
+                }
+                if (i.id == 3) {
+                    ship23 = 1
+                }
+                if (i.id == 4) {
+                    ship24 = 1
+                }
+            }
+            for (i in u2hitships) {
+                if (i.id == 1) {
+                    ship11 = 1
+                }
+                if (i.id == 2) {
+                    ship12 = 1
+                }
+                if (i.id == 3) {
+                    ship13 = 1
+                }
+                if (i.id == 4) {
+                    ship14 = 1
+                }
+            }
+            score1 = ship11 * 150 + ship12 * 450 + ship13 * 300 + ship14 * 450
+            score2 = ship21 * 150 + ship22 * 450 + ship23 * 300 + ship24 * 450
+
+            var winner = user1
+            var loser = user2
+            var wscore = score1
+            var lscore = score2
+
+            Column(
+                modifier = Modifier.fillMaxSize().background(Color(0, 0, 0, 100))
+                ,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Box(modifier=Modifier.clip(RoundedCornerShape(30.dp)).size(400.dp,400.dp).background(Color.Cyan)) {
+                    Column(
+                        verticalArrangement = Arrangement.Top,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(
+
+                            modifier = Modifier.size(400.dp,300.dp).clip(RoundedCornerShape(30.dp))
+                                .background(Color.White)
+                        ) {
+                            Column(
+
+
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                if (score2 == score1) {
+                                    Row(modifier.fillMaxWidth().background(Color(227,182,57,255)), horizontalArrangement = Arrangement.Center) {
+                                        Text(
+                                            "IT'S A TIE",
+                                            fontSize = 30.sp,
+                                            color = Color.Black,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    winner=""
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+
+                                    Text(
+                                        "$user1          $score1".toUpperCase(),
+                                        color = fccolor1,
+                                        fontSize = 25.sp,
+                                        fontFamily = FontFamily(
+                                            Font(
+                                                R.font.galgony,
+                                                FontWeight.Bold
+                                            )
+                                        )
+                                    )
+
+
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                    Text(
+                                        if (np==1) "BOT          $score2"; else "$user2          $score2".toUpperCase(),
+                                        color = fccolor1,
+                                        fontSize = 25.sp,
+                                        fontFamily = FontFamily(
+                                            Font(
+                                                R.font.galgony,
+                                                FontWeight.Normal
+                                            )
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+
+                                } else {
+                                    if (score2 > score1) {
+                                        winner = user2
+                                        loser = user1
+                                        wscore = score2
+                                        lscore = score1
+                                    }
+                                    if (winner==""){
+                                        winner="BOT"
+                                    }
+                                    Row(modifier.fillMaxWidth().background(Color(227,182,57,255)), horizontalArrangement = Arrangement.Center) {
+                                        Text(
+                                            "THE WINNER IS ${winner.toUpperCase()}",
+                                            fontSize = 30.sp,
+                                            color = Color.Black,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+
+                                    Text(
+                                        "$user1          $score1".toUpperCase(),
+                                        color = fccolor1,
+                                        fontSize = 25.sp,
+                                        fontFamily = FontFamily(
+                                            Font(
+                                                R.font.galgony,
+                                                FontWeight.Bold
+                                            )
+                                        )
+                                    )
+
+
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                    Text(
+                                        if (np==1) "BOT          $score2"; else "$user2          $score2".toUpperCase().toUpperCase(),
+                                        color = fccolor1,
+                                        fontSize = 25.sp,
+                                        fontFamily = FontFamily(
+                                            Font(
+                                                R.font.galgony,
+                                                FontWeight.Normal
+                                            )
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                                }
+                            }
+                        }
                         Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
                         Row(modifier=Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center){
+
                             IconButton(
-                                onClick = { score_update(Context1, winner);screen_no = 20; },
+                                onClick = {if (winner!="" && np!=1) score_update(Context1, winner); if (np==1 && score1>score2) bot_update(Context1, user1);screen_no = 0; },
                                 modifier = Modifier.clip(RoundedCornerShape(50.dp))
-                                    .background(Color.Black)
+                                    .background(Color.White)
                                     .size(150.dp, 60.dp)
                             ) {
                                 Text(
-                                    "PLAY AGAIN",
+                                    "HOME",
                                     textAlign = TextAlign.Center,
-                                    color = Color.White, fontWeight = FontWeight.Bold
+                                    color = Color.Black, fontWeight = FontWeight.Bold
                                 )
                             }
-                            Spacer(modifier = Modifier.width(20.dp))
-                        IconButton(
-                            onClick = { score_update(Context1, winner);screen_no = 0; },
-                            modifier = Modifier.clip(RoundedCornerShape(50.dp))
-                                .background(Color.White)
-                                .size(150.dp, 60.dp)
-                        ) {
-                            Text(
-                                "HOME",
-                                textAlign = TextAlign.Center,
-                                color = Color.Black, fontWeight = FontWeight.Bold
-                            )
                         }
-                            }
 
                     }
                 }
             }
+            val context = LocalContext.current
+            CaptureScreenshotOnGameEnd( captureTrigger = true) { bitmap ->
+                saveBitmapToStorage(context, bitmap) // write it to storage
+            }
+
 
         }
     }
     if (screen_no==20){
+
         umode1=0
         umode2=0
         cannons1=3;
@@ -1461,8 +2399,89 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         u2mode=1;
         screen_no=10
     }
+    if (screen_no==21){
+        rounds-=1
+        umode1=0
+        umode2=0
+        if (rounds!=0) {
+            cannons1 = 3;
+            cannons2 = 3;
+        }
+        u1turn=1;
+        u2turn=1;
+        u1ships= mutableMapOf<Int, Shipposition>()
+        u1shipstrial= mutableMapOf<Int,Shipposition>()
+        u2ships= mutableMapOf<Int, Shipposition>()
+        u2shipstrial= mutableMapOf<Int,Shipposition>()
+        u1hitships= mutableListOf<Shipposition>()
+        u2hitships= mutableListOf<Shipposition>()
+        u1attackedtiles= mutableListOf<AttackedTile>()
+        u2attackedtiles= mutableListOf<AttackedTile>()
+        u1mode=1;
+        u2mode=1;
+        grid1= generateGrid(rows,cols,enable_tiles);
+        grid2= generateGrid(rows, cols,enable_tiles)
+
+        screen_no=11
+
+    }
+    if (screen_no==30){
+        Scaffold (topBar = {
+            Column(modifier = Modifier.background(contrast_color)) {
+                TopAppBar(title = {
+                    IconButton(onClick = { screen_no = last_open.last(); last_open.removeLast() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = fore_color
+                        )
+                    }
+                },  colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = contrast_color))
+            }
+        }, modifier = Modifier.fillMaxSize()) { innerPadding ->
+            val context = LocalContext.current
+            val imageFiles = remember { loadMatchHistory(context) }
+
+            LazyColumn(modifier = Modifier.padding(innerPadding)) {
+                items(imageFiles) { file ->
+                    val bitmap = BitmapFactory.decodeFile(file.absolutePath)
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Match Screenshot",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .padding(8.dp),
+                        contentScale = ContentScale.Crop
+
+                    )
+                }
+            }
+        }
+    }
 
 }
+
+
+fun loadMatchHistory(context: Context): List<File> {
+    val dir = File(context.filesDir, "match_history")
+    return dir.listFiles()?.sortedByDescending { it.lastModified() }?.toList() ?: emptyList()
+}
+
+fun saveBitmapToStorage(context: Context, bitmap: Bitmap) {
+    val filename = "match_${System.currentTimeMillis()}.png"
+    val dir = File(context.filesDir, "match_history")
+    if (!dir.exists()) dir.mkdirs()
+    val file = File(dir, filename)
+
+    FileOutputStream(file).use { out ->
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+    }
+}
+
+
+
 var counter=1
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
@@ -1509,6 +2528,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
             showDialog = 0
         }
         }
+
     if (u1turn == u2turn && umode1==2){
 
         ship1drag1=true
@@ -1522,6 +2542,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
         ship3drag=true
         ship4drag=true
     }
+
     else if ((umode1==1 || umode2==1) && (umode1!=0 && umode2!=0)){
         ship1drag1=false
         ship2drag1=false
@@ -1586,6 +2607,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
             u2turn+=1
             ship1drag=!ship1drag
             selectedtile=selectedTile(Offset(-1f,-1f),-1, -1, -1, -1)
+            cannons2 -= 1
             firecannon = false
 
 
@@ -1606,7 +2628,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
             repeat(steps1) {
                 visible2.value -=  (255 / steps1).toInt()
                 delay(delayPerStep1.toLong())
-                println(visible2.value)
+
             }
             visible2.value = 0
             delay(100)
@@ -1614,11 +2636,186 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
             u1turn+=1
             ship1drag1=!ship1drag1
             selectedtile=selectedTile(Offset(-1f,-1f),-1, -1, -1, -1)
+            cannons1 -= 1
             firecannon1 = false
 
 
 
 
+
+        }
+    }
+    LaunchedEffect(u1turn) {
+        if (u1turn != u2turn && np == 1 && umode2!=0) {
+            if (cannons2!=0){
+            if (difficulty == 0) {
+
+                var attackedtile = botchooseattack(difficulty, tiles1)
+                selectedtile = selectedTile(
+                    Offset(0f, 0f),
+                    attackedtile.x,
+                    attackedtile.y,
+                    attackedtile.width,
+                    attackedtile.height
+                )
+                u2attackedtiles.addLast(AttackedTile(attackedtile.x, attackedtile.y))
+                firecannon = true
+                for (i in u1ships.values) {
+                    if (i.size == 3) {
+                        if (i.rot == 0) {
+                            if (attackedtile.y == i.y && abs(attackedtile.x - i.x) < 2) {
+                                u1hitships.addLast(i)
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x - 1, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x + 1, i.y))
+                            }
+                        } else if (i.rot == 1) {
+                            if (attackedtile.x == i.x && abs(attackedtile.y - i.y) < 2) {
+                                u1hitships.addLast(i)
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y + 1))
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y - 1))
+                            }
+                        }
+                    } else if (i.size == 2) {
+                        if (i.rot == 0) {
+                            if (attackedtile.y == i.y && attackedtile.x - i.x < 2) {
+                                u1hitships.addLast(i)
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x + 1, i.y))
+                            }
+                        } else if (i.rot == 1) {
+                            if (attackedtile.x == i.x && attackedtile.y - i.y < 2) {
+                                u1hitships.addLast(i)
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y + 1))
+                            }
+                        }
+                    } else if (i.size == 1) {
+
+                        if (attackedtile.y == i.y && attackedtile.x == i.x) {
+                            u1hitships.addLast(i)
+                        }
+
+
+                    }
+                }
+
+            }
+            if (difficulty == 1) {
+
+                var attackedtile = botchooseattack(difficulty, tiles1)
+                selectedtile = selectedTile(
+                    Offset(0f, 0f),
+                    attackedtile.x,
+                    attackedtile.y,
+                    attackedtile.width,
+                    attackedtile.height
+                )
+                u2attackedtiles.addLast(AttackedTile(attackedtile.x, attackedtile.y))
+                firecannon = true
+                for (i in u1ships.values) {
+                    if (i.size == 3) {
+                        if (i.rot == 0) {
+                            if (attackedtile.y == i.y && abs(attackedtile.x - i.x) < 2) {
+                                u1hitships.addLast(i)
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x - 1, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x + 1, i.y))
+                            }
+                        } else if (i.rot == 1) {
+                            if (attackedtile.x == i.x && abs(attackedtile.y - i.y) < 2) {
+                                u1hitships.addLast(i)
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y + 1))
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y - 1))
+                            }
+                        }
+                    } else if (i.size == 2) {
+                        if (i.rot == 0) {
+                            if (attackedtile.y == i.y && attackedtile.x - i.x < 2) {
+                                u1hitships.addLast(i)
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x + 1, i.y))
+                            }
+                        } else if (i.rot == 1) {
+                            if (attackedtile.x == i.x && attackedtile.y - i.y < 2) {
+                                u1hitships.addLast(i)
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y + 1))
+                            }
+                        }
+                    } else if (i.size == 1) {
+
+                        if (attackedtile.y == i.y && attackedtile.x == i.x) {
+                            u1hitships.addLast(i)
+                        }
+
+
+                    }
+                }
+
+            }
+            if (difficulty == 2) {
+
+                var attackedtile = botchooseattack(difficulty, tiles1)
+                selectedtile = selectedTile(
+                    Offset(0f, 0f),
+                    attackedtile.x,
+                    attackedtile.y,
+                    attackedtile.width,
+                    attackedtile.height
+                )
+                u2attackedtiles.addLast(AttackedTile(attackedtile.x, attackedtile.y))
+                firecannon = true
+                for (i in u1ships.values) {
+                    if (i.size == 3) {
+                        if (i.rot == 0) {
+                            if (attackedtile.y == i.y && abs(attackedtile.x - i.x) < 2) {
+                                u1hitships.addLast(i)
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x - 1, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x + 1, i.y))
+                            }
+                        } else if (i.rot == 1) {
+                            if (attackedtile.x == i.x && abs(attackedtile.y - i.y) < 2) {
+                                u1hitships.addLast(i)
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y + 1))
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y - 1))
+                            }
+                        }
+                    } else if (i.size == 2) {
+                        if (i.rot == 0) {
+                            if (attackedtile.y == i.y && attackedtile.x - i.x < 2) {
+                                u1hitships.addLast(i)
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x + 1, i.y))
+                            }
+                        } else if (i.rot == 1) {
+                            if (attackedtile.x == i.x && attackedtile.y - i.y < 2) {
+                                u1hitships.addLast(i)
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y))
+                                u2attackedtiles.addLast(AttackedTile(i.x, i.y + 1))
+                            }
+                        }
+                    } else if (i.size == 1) {
+
+                        if (attackedtile.y == i.y && attackedtile.x == i.x) {
+                            u1hitships.addLast(i)
+                        }
+
+
+                    }
+                }
+            }
+
+            }
+            else{
+                botplacedships(tile1, tileSizex, tileSizey)
+                u2turn+=1
+
+            }
         }
     }
     Box(
@@ -1656,7 +2853,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                     selectedtile=selectedTile(tapOffset,clickedTile.x,clickedTile.y,clickedTile.width, clickedTile.height)
                                 }
                                 else if (u1turn!=u2turn && cannons2!=0){
-                                    cannons2-=1
+
                                     firecannon=true
                                     u2attackedtiles.addLast(AttackedTile(clickedTile.x,clickedTile.y))
                                     for (i in u1ships.values){
@@ -1707,9 +2904,8 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
 
 
-                                    println(u1hitships)
                                 }
-                                println("Clicked tile: ${clickedTile.x}, ${clickedTile.y}, ${selectedtile.x} , ${selectedtile.y}")
+
                             }
                         }}, contentAlignment = Alignment.Center
             ) {
@@ -1722,7 +2918,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         )
                         .onGloballyPositioned { coordinates ->
                             canvasPosition = coordinates.positionInRoot()
-                            println("Canvas global position: $canvasPosition")
+
                         }
                 ) {
 
@@ -2054,7 +3250,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
                                                 if (((-1 < i.col && i.col < cols - 1 && rot2 == 0) || (i.width == 2 && rot2 == 0)) || ((0 < i.row && i.row < cols && rot2 == 1) || (i.height > 1 && rot2 == 1))) {
                                                     closest = i
-                                                    println(1)
+
                                                 }
                                             }
 
@@ -2071,7 +3267,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                     minx = closest.x
                                                     miny = closest.y
                                                 } else {
-                                                    println(1)
+
                                                     minx = 0.01f
                                                     miny = 0.01f
                                                     rot2 = 0
@@ -2082,7 +3278,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                     minx = closest.x
                                                     miny = closest.y
                                                 } else {
-                                                    println(1)
+
                                                     minx = 0.01f
                                                     miny = 0.01f
                                                     rot2 = 0
@@ -2512,7 +3708,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                     }
 
                                     else if (u1turn == u2turn && cannons1 != 0) {
-                                        cannons1 -= 1
+
                                         firecannon1=true
                                         u1attackedtiles.addLast(
                                             AttackedTile(
@@ -2612,9 +3808,8 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                         }
 
 
-                                        println(u2hitships)
                                     }
-                                    println("Clicked tile: ${clickedTile.x}, ${clickedTile.y}")
+
                                 }
                             }
                         }, contentAlignment = Alignment.Center
@@ -2628,7 +3823,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                             )
                             .onGloballyPositioned { coordinates ->
                                 canvasPosition = coordinates.positionInRoot()
-                                println("Canvas global position: $canvasPosition")
+
                             }
                     ) {
                         tiles2.forEach { tile ->
@@ -2959,7 +4154,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
                                                     if (((-1 < i.col && i.col < cols - 1 && rot2 == 0) || (i.width == 2 && rot2 == 0)) || ((0 < i.row && i.row < cols && rot2 == 1) || (i.height > 1 && rot2 == 1))) {
                                                         closest = i
-                                                        println(1)
+
                                                     }
                                                 }
 
@@ -2976,7 +4171,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                         minx = closest.x
                                                         miny = closest.y
                                                     } else {
-                                                        println(1)
+
                                                         minx = 0.01f
                                                         miny = 0.01f
                                                         rot2 = 0
@@ -2987,7 +4182,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                         minx = closest.x
                                                         miny = closest.y
                                                     } else {
-                                                        println(1)
+
                                                         minx = 0.01f
                                                         miny = 0.01f
                                                         rot2 = 0
@@ -3165,7 +4360,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                 val y3start = u1shipstrial[3]?.ycoord ?: -1f
                                                 val x4start = u1shipstrial[4]?.xcoord ?: -1f
                                                 val y4start = u1shipstrial[4]?.ycoord ?: -1f
-                                                println(u1shipstrial)
+
                                                 if (x1start == -1f || x2start == -1f || x3start == -1f || x4start == -1f || y1start == -1f || y2start == -1f || y3start == -1f || y4start == -1f || u1shipstrial[1]?.xcoord == 0.01f || u1shipstrial[2]?.xcoord == 0.01f || u1shipstrial[3]?.xcoord == 0.01f || u1shipstrial[4]?.xcoord == 0.01f || u1shipstrial[1]?.ycoord == 0.01f || u1shipstrial[2]?.ycoord == 0.01f || u1shipstrial[3]?.ycoord == 0.01f || u1shipstrial[4]?.ycoord == 0.01f) {
                                                     showDialog = 1
 
@@ -3176,31 +4371,31 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                         for (i in (x1start - 3 * tileSizex / 2).toInt()..(x1start + 3 * tileSizex / 2).toInt()) {
                                                             if (i < (x2start + tileSizex / 2) && i > (x2start - tileSizex / 2) && y1start == y2start) {
                                                                 showDialog = 2
-                                                                println(12)
+
                                                             }
                                                             if ((u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y1start == y3start) || (u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u1shipstrial[3]!!.y - u1shipstrial[1]!!.y < 2))) {
                                                                 showDialog = 2
-                                                                println(13)
+
                                                             }
                                                             if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
                                                                 showDialog = 2
-                                                                println(14)
+
                                                             }
                                                         }
                                                     } else if (u1shipstrial[1]?.rot == 1) {
                                                         for (i in (y1start - 3 * tileSizey / 2).toInt()..(y1start + 3 * tileSizey / 2).toInt()) {
                                                             if (i < (y2start + tileSizey / 2) && i > (y2start - tileSizey / 2) && x1start == x2start) {
                                                                 showDialog = 2
-                                                                println(12)
+
                                                             }
                                                             if ((u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x1start == x3start) || (u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u1shipstrial[3]!!.x - u1shipstrial[1]!!.x < 2))) {
                                                                 showDialog = 2
-                                                                println(13)
+
 
                                                             }
                                                             if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x1start == x4start) {
                                                                 showDialog = 2
-                                                                println(14)
+
                                                             }
                                                         }
                                                     }
@@ -3208,23 +4403,23 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                         for (i in (x2start - tileSizex / 2).toInt()..(x2start + tileSizex / 2).toInt()) {
                                                             if ((u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y2start == y3start) || (u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u1shipstrial[3]!!.y - u1shipstrial[2]!!.y < 2))) {
                                                                 showDialog = 2
-                                                                println(23)
+
                                                             }
                                                             if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
                                                                 showDialog = 2
-                                                                println(24)
+
                                                             }
                                                         }
                                                     } else if (u1shipstrial[2]?.rot == 1) {
                                                         for (i in (y2start - tileSizey / 2).toInt()..(y2start + tileSizey / 2).toInt()) {
                                                             if ((u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x2start == x3start) || (u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u1shipstrial[3]!!.x - u1shipstrial[2]!!.x < 2))) {
                                                                 showDialog = 2
-                                                                println(23)
+
 
                                                             }
                                                             if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x2start == x4start) {
                                                                 showDialog = 2
-                                                                println(24)
+
                                                             }
                                                         }
                                                     }
@@ -3233,7 +4428,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                         for (i in (x4start - tileSizex / 2).toInt()..(x4start + tileSizex / 2).toInt()) {
                                                             if ((u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y4start == y3start) || (u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u1shipstrial[3]!!.y - u1shipstrial[4]!!.y < 2))) {
                                                                 showDialog = 2
-                                                                println(43)
+
                                                             }
 
                                                         }
@@ -3241,7 +4436,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                         for (i in (y4start - tileSizey / 2).toInt()..(y4start + tileSizey / 2).toInt()) {
                                                             if ((u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x4start == x3start) || (u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u1shipstrial[3]!!.x - u1shipstrial[4]!!.x < 2))) {
                                                                 showDialog = 2
-                                                                println(43)
+
 
                                                             }
                                                         }
@@ -3261,6 +4456,9 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                             umode1 = 1
                                                         }; for (i in u1shipstrial.values) {
                                                             u1ships[i.id] = i
+                                                        };if (np==1){
+                                                            botplacedships(tile1, tileSizex, tileSizey)
+                                                            u2turn+=1
                                                         };ship1drag1 = false
                                                     }
                                                 }
@@ -3328,8 +4526,208 @@ fun MyDialogDemo(text: String):Int {
 
 
 }
+fun botplacedships(tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Float ) {
+    for (id in 1..4){
+        var tile=tile1.random()
+        var rot= Random.nextInt(2)
+        u2shipstrial[id]= Shipposition(id, if (id==1) 3; else if (id==3) 2; else 1,tile.col,tile.row,rot,tile.x,tile.y)
+    }
+    var showDialog=0
+    val x1start = u2shipstrial[1]?.xcoord ?: -1f
+    val y1start = u2shipstrial[1]?.ycoord ?: -1f
+    val x2start = u2shipstrial[2]?.xcoord ?: -1f
+    val y2start = u2shipstrial[2]?.ycoord ?: -1f
+    val x3start = u2shipstrial[3]?.xcoord ?: -1f
+    val y3start = u2shipstrial[3]?.ycoord ?: -1f
+    val x4start = u2shipstrial[4]?.xcoord ?: -1f
+    val y4start = u2shipstrial[4]?.ycoord ?: -1f
 
+    if (x1start == -1f || x2start == -1f || x3start == -1f || x4start == -1f || y1start == -1f || y2start == -1f || y3start == -1f || y4start == -1f || u2shipstrial[1]?.xcoord == 0.01f || u2shipstrial[2]?.xcoord == 0.01f || u2shipstrial[3]?.xcoord == 0.01f || u2shipstrial[4]?.xcoord == 0.01f || u2shipstrial[1]?.ycoord == 0.01f || u2shipstrial[2]?.ycoord == 0.01f || u2shipstrial[3]?.ycoord == 0.01f || u2shipstrial[4]?.ycoord == 0.01f) {
+        showDialog = 1
+    } else if (u2shipstrial[1] == null || u2shipstrial[2] == null || u2shipstrial[3] == null || u2shipstrial[4] == null) {
+        showDialog = 1
+    } else {
+        if (u2shipstrial[1]?.rot == 0) {
+            for (i in (x1start - 3 * tileSizex / 2).toInt()..(x1start + 3 * tileSizex / 2).toInt()) {
+                if (i < (x2start + tileSizex / 2) && i > (x2start - tileSizex / 2) && y1start == y2start) {
+                    showDialog = 2
+                }
+                if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y1start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[1]!!.y < 2))) {
+                    showDialog = 2
 
+                }
+                if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                    showDialog = 2
+                }
+            }
+        } else if (u2shipstrial[1]?.rot == 1) {
+            for (i in (y1start - 3 * tileSizey / 2).toInt()..(y1start + 3 * tileSizey / 2).toInt()) {
+                if (i < (y2start + tileSizey / 2) && i > (y2start - tileSizey / 2) && x1start == x2start) {
+                    showDialog = 2
+                }
+                if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x1start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[1]!!.x < 2))) {
+                    showDialog = 2
+
+                }
+                if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x1start == x4start) {
+                    showDialog = 2
+                }
+            }
+        }
+        if (u2shipstrial[2]?.rot == 0) {
+            for (i in (x2start - tileSizex / 2).toInt()..(x2start + tileSizex / 2).toInt()) {
+                if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y2start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[2]!!.y < 2))) {
+                    showDialog = 2
+
+                }
+                if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                    showDialog = 2
+                }
+            }
+        } else if (u2shipstrial[2]?.rot == 1) {
+            for (i in (y2start - tileSizey / 2).toInt()..(y2start + tileSizey / 2).toInt()) {
+                if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x2start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[2]!!.x < 2))) {
+                    showDialog = 2
+
+                }
+                if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x2start == x4start) {
+                    showDialog = 2
+                }
+            }
+        }
+
+    }
+    if (showDialog==0){
+        if (umode2 == 0) {
+            umode2 = 1
+        }; for (i in u2shipstrial.values) {
+            u2ships[i.id] = i
+        };
+
+        println(u2ships)
+    }
+    else{
+        botplacedships(tile1,tileSizex,tileSizey)
+    }
+}
+fun botchooseattack(difficulty: Int, tile: List<Tile>): Tile{
+    if (difficulty==0){
+        var tile1 = tile.toMutableList()
+
+        for (i in u1ships.values){
+            for (j in tile){
+                if (i.x==j.x && i.y==j.y){
+
+                    tile1.addLast(j)
+
+                }
+            }
+        }
+        for (k in u2attackedtiles){
+            for (i in tile){
+                if (k.x==i.x && k.y == i.y){
+                    tile1.remove(i)
+                }
+            }
+        }
+        return tile1.random()
+    }
+    if (difficulty==1){
+        var tile1 = tile.toMutableList()
+
+        for (i in u1ships.values){
+            for (j in tile){
+                if (i.x==j.x && i.y==j.y){
+                    if (i.size==3 && i.rot==0){
+                        tile1.addLast(j)
+                        tile1.addLast(Tile(j.x-1, j.y, j.width,j.height))
+                        tile1.addLast(Tile(j.x+1, j.y, j.width,j.height))
+                    }
+                    else if (i.size==3 && i.rot==1){
+                        tile1.addLast(j)
+                        tile1.addLast(Tile(j.x, j.y-1, j.width,j.height))
+                        tile1.addLast(Tile(j.x, j.y+1, j.width,j.height))
+                    }
+                    if (i.size==2 && i.rot==0){
+                        tile1.addLast(j)
+                        tile1.addLast(Tile(j.x+1, j.y, j.width,j.height))
+                    }
+                    else if (i.size==2 && i.rot==1){
+                        tile1.addLast(j)
+                        tile1.addLast(Tile(j.x, j.y+1, j.width,j.height))
+                    }
+                    else{
+                        tile1.addLast(j)
+                        tile1.addLast(j)
+                    }
+                }
+            }
+        }
+        for (k in u2attackedtiles){
+            for (i in tile){
+                if (k.x==i.x && k.y == i.y){
+                    tile1.remove(i)
+                }
+            }
+        }
+        println(tile1)
+
+        return tile1.random()
+    }
+    if (difficulty==2){
+        var tile1 = tile.toMutableList()
+
+        for (i in u1ships.values){
+            for (j in tile){
+                if (i.x==j.x && i.y==j.y){
+                    if (i.size==3 && i.rot==0){
+                        tile1.addLast(j)
+                        tile1.addLast(j)
+                        tile1.addLast(Tile(j.x-1, j.y, j.width,j.height))
+                        tile1.addLast(Tile(j.x+1, j.y, j.width,j.height))
+                    }
+                    else if (i.size==3 && i.rot==1){
+                        tile1.addLast(j)
+                        tile1.addLast(j)
+                        tile1.addLast(Tile(j.x, j.y-1, j.width,j.height))
+                        tile1.addLast(Tile(j.x, j.y+1, j.width,j.height))
+                    }
+                    if (i.size==2 && i.rot==0){
+                        tile1.addLast(j)
+                        tile1.addLast(j)
+                        tile1.addLast(Tile(j.x+1, j.y, j.width,j.height))
+                        tile1.addLast(Tile(j.x+1, j.y, j.width,j.height))
+                    }
+                    else if (i.size==2 && i.rot==1){
+                        tile1.addLast(j)
+                        tile1.addLast(j)
+                        tile1.addLast(Tile(j.x, j.y+1, j.width,j.height))
+                        tile1.addLast(Tile(j.x, j.y+1, j.width,j.height))
+                    }
+                    else{
+                        tile1.addLast(j)
+                        tile1.addLast(j)
+                        tile1.addLast(j)
+                        tile1.addLast(j)
+                    }
+                }
+            }
+        }
+        for (k in u2attackedtiles){
+            for (i in tile){
+                if (k.x==i.x && k.y == i.y){
+                    tile1.remove(i)
+                }
+            }
+        }
+        println(tile1)
+
+        return tile1.random()
+    }
+
+    return tile.random()
+
+}
 fun generateGrid(rows: Int, cols: Int,enable_tiles: Boolean): List<Tile> {
 
     val occupied = Array(rows) { BooleanArray(cols) }
@@ -3389,8 +4787,21 @@ fun generateGrid(rows: Int, cols: Int,enable_tiles: Boolean): List<Tile> {
 
 }
 
+@Composable
+fun CaptureScreenshotOnGameEnd(captureTrigger: Boolean, onCaptured: (Bitmap) -> Unit) {
+    val context= LocalContext.current
+    val view = LocalView.current
 
-
+    LaunchedEffect(captureTrigger) {
+        delay(20)
+        if (captureTrigger) {
+            withFrameNanos {
+                val bitmap = view.drawToBitmap()
+                onCaptured(bitmap)
+            }
+        }
+    }
+}
 
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 fun savePlayerNames(context: Context, names: String) {
@@ -3482,6 +4893,26 @@ fun score_update(context: Context, winner: String){
         val key = listOf("")
         val value = listOf( listOf(""))
      
+
+    }
+}
+fun bot_update(context: Context, winner: String){
+    return try {
+        val fileInput = context.openFileInput("players.txt")
+        val fileInput2 = context.openFileInput("bot.txt")
+        val key=fileInput.bufferedReader().readLines()
+        val value1=fileInput2.bufferedReader().readLines()
+        var map= key.zip(value1).toMap()
+        var map1=map.toMutableMap()
+        val fileOutput= context.openFileOutput("bot.txt",Context.MODE_PRIVATE)
+        map1[winner]=(map1[winner]?.toInt()?.plus(1)).toString()
+        for (i in map1.values){
+            fileOutput.write("$i\n".toByteArray())
+        }
+    } catch (e: Exception) {
+        val key = listOf("")
+        val value = listOf( listOf(""))
+
 
     }
 }
