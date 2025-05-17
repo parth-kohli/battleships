@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Paint
 import android.graphics.Paint.Align
 import android.icu.text.RelativeDateTimeFormatter
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -64,7 +65,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -92,6 +95,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -154,20 +158,7 @@ var u1attackedtiles= mutableListOf<AttackedTile>()
 var u2attackedtiles= mutableListOf<AttackedTile>()
 var tourn1= mutableMapOf(1 to 0, 2 to 0, 3 to 0, 4 to 0, 5 to 0, 6 to 0, 7 to 0)
 var tourn2=mutableMapOf(1 to 0, 2 to 0, 3 to 0, 4 to 0, 5 to 0, 6 to 0, 7 to 0)
-fun Modifier.drawVerticalScrollbar(listState: LazyListState) = drawBehind {
-    val firstVisibleItemIndex = listState.firstVisibleItemIndex
-    val itemCount = listState.layoutInfo.totalItemsCount
-    if (itemCount == 0) return@drawBehind
-    val scrollbarHeight = size.height * (listState.layoutInfo.visibleItemsInfo.size.toFloat() / itemCount)
-    val scrollbarOffset = size.height * (firstVisibleItemIndex.toFloat() / itemCount)
 
-    drawRoundRect(
-        color = Color.Gray,
-        topLeft = Offset(size.width - 8.dp.toPx(), scrollbarOffset),
-        size = androidx.compose.ui.geometry.Size(4.dp.toPx(), scrollbarHeight),
-        cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
-    )
-}
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -184,6 +175,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+
 var hello=0
 var last_open = mutableListOf(1)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -194,12 +187,17 @@ var last_open = mutableListOf(1)
 @Composable
 
 fun Greeting(name: String, modifier: Modifier = Modifier) {
+    val configuration = LocalConfiguration.current
+    val widthDp = configuration.screenWidthDp.toFloat()
+    val heightDp = configuration.screenHeightDp.toFloat()
     /*val fileOutput = LocalContext.current.openFileOutput("players.txt", Context.MODE_PRIVATE)
     val scoreOutput = LocalContext.current.openFileOutput("scores.txt", Context.MODE_PRIVATE)
     val botscoreOutput = LocalContext.current.openFileOutput("bot.txt", Context.MODE_PRIVATE)*/
     var u1mode by remember { mutableStateOf(1) }
     var u2mode by remember { mutableStateOf(1) }
     var screen_no by remember { mutableStateOf(0) }
+    val context = LocalContext.current
+
 
     var add_player by remember { mutableStateOf(false) }
     val listState= rememberScrollState()
@@ -209,8 +207,22 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     var sounds by remember { mutableStateOf(readsettings(Context1)[2].toBoolean()) }
     var volume by remember { mutableStateOf(readsettings(Context1)[3].toFloat()) }
     var autoss by remember { mutableStateOf(readsettings(Context1)[4].toBoolean()) }
-
+    val refresh = remember { mutableStateOf(false) }
     var correct1 by remember { mutableStateOf(Color.Green) }
+    LaunchedEffect(Unit) {
+        MusicController.start(context)
+    }
+    if (sounds==false){
+        volume=0f
+    }
+    LaunchedEffect(volume) {
+        MusicController.setVolume(volume)
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            MusicController.stop()
+        }
+    }
     if (!dark_mode ){
         correct1=Color.Red
     }
@@ -275,6 +287,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         cannons2=3;
         u1turn=1;
         u2turn=1;
+        refresh.value=false
         grid1= emptyList()
         grid2 = emptyList()
         u1ships= mutableMapOf<Int, Shipposition>()
@@ -286,13 +299,15 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         u1attackedtiles= mutableListOf<AttackedTile>()
         u2attackedtiles= mutableListOf<AttackedTile>()
         Scaffold (modifier = Modifier.fillMaxSize()){ innerPadding ->
-            Column(modifier = Modifier.fillMaxSize().background(back_color).padding(0.dp,20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Spacer(modifier = Modifier.fillMaxWidth().height(60.dp))
+            Column(modifier = Modifier.fillMaxSize().background(back_color).padding(0.dp,(20* heightDp/914).dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Spacer(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.065f))
+
+                println("$widthDp, $heightDp")
 
                 androidx.compose.material3.Text("BATTLESHIPS", fontSize= 50.sp, fontWeight=FontWeight.ExtraBold, color = fore_color)
                 androidx.compose.material3.Text("ARMADA", fontSize= 50.sp, fontWeight=FontWeight.ExtraBold, color = fore_color)
 
-                Box(modifier.fillMaxWidth().height(480.dp)) {
+                Box(modifier.fillMaxWidth().height((480*heightDp/914).dp)) {
                     Image(
                         painter = painterResource(id = R.drawable.title_backdrop),
                         contentDescription = "Background Image",
@@ -306,33 +321,33 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                    IconButton(onClick = { last_open.addLast(screen_no);  screen_no = 1 }, modifier = Modifier.size(150.dp)) {
+                    IconButton(onClick = { Soundplayer.click(Context1, sounds);last_open.addLast(screen_no);  screen_no = 1 }, modifier = Modifier.size((150*widthDp/411).dp, (150*heightDp/914).dp) ){
                         Image(
                             painter = painterResource(id = R.drawable.button1),
                             contentDescription = "My Icon",
-                            modifier = Modifier.size(150.dp)
+                            modifier = Modifier.size((150*widthDp/411).dp, (150*heightDp/914).dp)
                         )
 
                     }
                 }
                     }
-                Row (modifier = Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.SpaceEvenly){
+                Row (modifier = Modifier.fillMaxWidth().padding((20*widthDp/411).dp, (20*heightDp/914).dp), horizontalArrangement = Arrangement.SpaceEvenly){
                     Column {
-                        IconButton(onClick = { screen_no = 2; last_open.addLast(0) }, modifier = Modifier.size(80.dp).clip(
+                        IconButton(onClick = { Soundplayer.click(Context1, sounds); screen_no = 2; last_open.addLast(0) }, modifier = Modifier.size((80*widthDp/411).dp, (80*heightDp/914).dp).clip(
                             CircleShape).background(fore_color)) {
-                            IconButton(onClick = { screen_no = 2; last_open.addLast(0)}, modifier = Modifier.size(70.dp).clip(
+                            IconButton(onClick = {Soundplayer.click(Context1, sounds); screen_no = 2; last_open.addLast(0)}, modifier = Modifier.size((70*widthDp/411).dp, (70*heightDp/914).dp).clip(
                                 CircleShape).background(Color(246,216,21,255))) {
-                                    Icon(imageVector = Icons.Outlined.Settings, contentDescription = "Settings", tint=contrast_color, modifier = Modifier.size(60.dp))
+                                    Icon(imageVector = Icons.Outlined.Settings, contentDescription = "Settings", tint=contrast_color, modifier = Modifier.size((60*widthDp/411).dp, (60*heightDp/914).dp))
                             }
 
                         }
                     }
                     Column {
-                        IconButton(onClick = { screen_no = 30; last_open.addLast(0) }, modifier = Modifier.size(80.dp).clip(
+                        IconButton(onClick = { Soundplayer.click(Context1, sounds); screen_no = 30; last_open.addLast(0) }, modifier = Modifier.size((80*widthDp/411).dp, (80*heightDp/914).dp).clip(
                             CircleShape).background(fore_color)) {
-                            IconButton(onClick = { screen_no =30; last_open.addLast(0)}, modifier = Modifier.size(70.dp).clip(
+                            IconButton(onClick = { Soundplayer.click(Context1, sounds); screen_no =30; last_open.addLast(0)}, modifier = Modifier.size((70*widthDp/411).dp, (70*heightDp/914).dp).clip(
                                 CircleShape).background(Color(246,216,21,255))) {
-                                Icon(painter = painterResource(R.drawable.history), contentDescription = "History", tint=contrast_color, modifier = Modifier.size(60.dp))
+                                Icon(painter = painterResource(R.drawable.history), contentDescription = "History", tint=contrast_color, modifier = Modifier.size((60*widthDp/411).dp, (60*heightDp/914).dp))
                             }
 
                         }
@@ -340,13 +355,13 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             IconButton(
-                                onClick = { screen_no = 4; last_open.addLast(0) }, modifier = Modifier.size(80.dp).clip(
+                                onClick = {Soundplayer.click(Context1, sounds); screen_no = 4; last_open.addLast(0) }, modifier = Modifier.size((80*widthDp/411).dp, (80*heightDp/914).dp).clip(
                                     CircleShape
                                 ).background(fore_color)
                             ) {
                                 IconButton(
-                                    onClick = { screen_no = 4; last_open.addLast(0) },
-                                    modifier = Modifier.size(70.dp).clip(
+                                    onClick = {Soundplayer.click(Context1, sounds); screen_no = 4; last_open.addLast(0) },
+                                    modifier = Modifier.size((70*widthDp/411).dp, (70*heightDp/914).dp).clip(
                                         CircleShape
                                     ).background(Color(246, 216, 21, 255))
                                 ) {
@@ -354,16 +369,16 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                         imageVector = Icons.Outlined.List,
                                         contentDescription = "Settings",
                                         tint = contrast_color,
-                                        modifier = Modifier.size(60.dp)
+                                        modifier = Modifier.size((60*widthDp/411).dp, (60*heightDp/914).dp)
                                     )
                                 }
 
                             }
                         }
                         Column () {
-                            IconButton(onClick = { screen_no = 3; last_open.addLast(0) }, modifier = Modifier.size(80.dp).clip(
+                            IconButton(onClick = { Soundplayer.click(Context1, sounds);screen_no = 3; last_open.addLast(0) }, modifier = Modifier.size((80*widthDp/411).dp, (80*heightDp/914).dp).clip(
                                 CircleShape).background(fore_color)) {
-                                IconButton(onClick = { screen_no = 3; last_open.addLast(0)}, modifier = Modifier.size(70.dp).clip(
+                                IconButton(onClick = {Soundplayer.click(Context1, sounds); screen_no = 3; last_open.addLast(0)}, modifier = Modifier.size((70*widthDp/411).dp, (70*heightDp/914).dp).clip(
                                     CircleShape).background(Color(246,216,21,255))) {
                                     Text("?", fontSize = 60.sp, color = contrast_color)
                                 }
@@ -384,7 +399,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         Scaffold (topBar = {
             Column(modifier = Modifier.background(contrast_color)) {
                 TopAppBar(title = {
-                    IconButton(onClick = { screen_no = last_open.last(); last_open.removeLast() }) {
+                    IconButton(onClick = {Soundplayer.click(Context1, sounds); screen_no = last_open.last(); last_open.removeLast() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -395,19 +410,19 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     containerColor = contrast_color))
             }
         }, modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Column(modifier = Modifier.fillMaxSize().background(back_color).padding(20.dp,20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center){
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+            Column(modifier = Modifier.fillMaxSize().background(back_color).padding((20*widthDp/411).dp, (20*heightDp/914).dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center){
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
                 Text("GAME MODE", fontSize = 40.sp, color= fore_color, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
-                IconButton(onClick = {screen_no=5; last_open.addLast(1)}, modifier=Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor1).size(200.dp,80.dp)) {
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
+                IconButton(onClick = {Soundplayer.click(Context1, sounds);screen_no=5; last_open.addLast(1)}, modifier=Modifier.clip(RoundedCornerShape((50*heightDp/914).dp)).background(bccolor1).size((200*widthDp/411).dp, (80*heightDp/914).dp)) {
                     Row (modifier= Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically){
                         Text("PVP", color = fccolor1, fontSize = 25.sp, fontFamily = FontFamily(Font(R.font.macondo, FontWeight.Normal)))
-                        Icon(imageVector = Icons.Outlined.Person, contentDescription = "PVP", tint= contrast_color, modifier = Modifier.requiredSize(60.dp))
+                        Icon(imageVector = Icons.Outlined.Person, contentDescription = "PVP", tint= contrast_color, modifier = Modifier.requiredSize((60*widthDp/411).dp, (60*heightDp/914).dp))
                     }
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
 
-                IconButton(onClick = {screen_no=5; np=1; last_open.addLast(1)}, modifier=Modifier.clip(RoundedCornerShape(50.dp)).background(bccollor2).size(200.dp,80.dp)) {
+                IconButton(onClick = {Soundplayer.click(Context1, sounds);screen_no=5; np=1; last_open.addLast(1)}, modifier=Modifier.clip(RoundedCornerShape((50*widthDp/411).dp)).background(bccollor2).size((200*widthDp/411).dp, (80*heightDp/914).dp)) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
                         horizontalArrangement = Arrangement.Center,
@@ -423,15 +438,15 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                             painter = painterResource(R.drawable.robot),
                             contentDescription = "Bot",
                             tint = contrast_color,
-                            modifier = Modifier.size(60.dp)
+                            modifier = Modifier.size((60*widthDp/411).dp, (60*heightDp/914).dp)
                         )
                     }
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
-                IconButton(onClick = {screen_no=5; nt=2; last_open.addLast(1)}, modifier=Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor3).size(200.dp,80.dp)) {
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
+                IconButton(onClick = {Soundplayer.click(Context1, sounds);screen_no=5; nt=2; last_open.addLast(1)}, modifier=Modifier.clip(RoundedCornerShape((50*heightDp/914).dp)).background(bccolor3).size((200*widthDp/411).dp, (80*heightDp/914).dp)) {
                     Row (modifier= Modifier.fillMaxSize(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically){
                         Text("Tourn", color = fccolor, fontSize = 25.sp, fontFamily = FontFamily(Font(R.font.macondo, FontWeight.Normal)))
-                        Icon(painter = painterResource(R.drawable.tophy), contentDescription = "Tournament", tint= contrast_color, modifier = Modifier.size(60.dp))
+                        Icon(painter = painterResource(R.drawable.tophy), contentDescription = "Tournament", tint= contrast_color, modifier = Modifier.size((60*widthDp/411).dp, (60*heightDp/914).dp))
                     }
                 }
 
@@ -461,7 +476,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
             }
         }, modifier = Modifier.fillMaxSize()) { innerPadding ->
             Column(
-                modifier = Modifier.fillMaxSize().background(back_color).padding(50.dp, 20.dp)
+                modifier = Modifier.fillMaxSize().background(back_color).padding((50*widthDp/411).dp, (50*heightDp/914).dp)
                     .verticalScroll(listState),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -471,14 +486,14 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 val settings= readsettings(context)
                 Row {
                     Text("Dark Mode: ", color=fore_color, fontStyle = FontStyle(R.font.macondo))
-                    Spacer(modifier=Modifier.fillMaxHeight().width(30.dp))
-                    IconButton(onClick = { editsettings(context, 0, 100f); dark_mode=!dark_mode }, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                    Spacer(modifier=Modifier.fillMaxHeight().width((30*widthDp/411).dp))
+                    IconButton(onClick = { Soundplayer.click(Context1, sounds);editsettings(context, 0, 100f); dark_mode=!dark_mode }, modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                         .background(correct1)
-                        .size(100.dp, 40.dp)) {
+                        .size((100*widthDp/411).dp, (40*heightDp/914).dp)) {
                         if (settings[0]=="true") {
                             Row (modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End){
                                 Text("On", color = fore_color)
-                                Spacer(modifier=Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier=Modifier.fillMaxHeight().width((10*widthDp/411).dp))
                                 Icon(
                                     painter = painterResource(R.drawable.circle),
                                     contentDescription = "Check",
@@ -493,25 +508,25 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     contentDescription = "Check",
                                     tint = fore_color
                                 )
-                                Spacer(modifier=Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier=Modifier.fillMaxHeight().width((10*widthDp/411).dp))
                                 Text("Off", color = fore_color)
                             }
                         }
 
                     }
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                 Row {
 
                     Text("Randomize Tile\n Size: ", color=fore_color, fontStyle = FontStyle(R.font.macondo))
-                    Spacer(modifier=Modifier.fillMaxHeight().width(30.dp))
-                    IconButton(onClick = { editsettings(context, 1, 100f); enable_tiles=!enable_tiles}, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                    Spacer(modifier=Modifier.fillMaxHeight().width((30*widthDp/411).dp))
+                    IconButton(onClick = {Soundplayer.click(Context1, sounds); editsettings(context, 1, 100f); enable_tiles=!enable_tiles}, modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                         .background(correct2)
-                        .size(100.dp, 40.dp)) {
+                        .size((100*widthDp/411).dp, (40*heightDp/914).dp)) {
                         if (settings[1]=="true") {
                             Row (modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End){
                                 Text("On", color = fore_color)
-                                Spacer(modifier=Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier=Modifier.fillMaxHeight().width((10*widthDp/411).dp))
                                 Icon(
                                     painter = painterResource(R.drawable.circle),
                                     contentDescription = "Check",
@@ -526,25 +541,25 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     contentDescription = "Check",
                                     tint = fore_color
                                 )
-                                Spacer(modifier=Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier=Modifier.fillMaxHeight().width((10*widthDp/411).dp))
                                 Text("Off", color = fore_color)
                             }
                         }
 
                     }
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                 Row {
 
                     Text("Allow Sounds: ", color=fore_color, fontStyle = FontStyle(R.font.macondo))
-                    Spacer(modifier=Modifier.fillMaxHeight().width(30.dp))
-                    IconButton(onClick = { editsettings(context, 2, 100f); sounds=!sounds}, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                    Spacer(modifier=Modifier.fillMaxHeight().width((30*widthDp/411).dp))
+                    IconButton(onClick = { Soundplayer.click(Context1, sounds);editsettings(context, 2, 100f); sounds=!sounds}, modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                         .background(correct3)
-                        .size(100.dp, 40.dp)) {
+                        .size((100*widthDp/411).dp, (40*heightDp/914).dp)) {
                         if (settings[2]=="true") {
                             Row (modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End){
                                 Text("On", color = fore_color)
-                                Spacer(modifier=Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier=Modifier.fillMaxHeight().width((10*widthDp/411).dp))
                                 Icon(
                                     painter = painterResource(R.drawable.circle),
                                     contentDescription = "Check",
@@ -559,28 +574,28 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     contentDescription = "Check",
                                     tint = fore_color
                                 )
-                                Spacer(modifier=Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier=Modifier.fillMaxHeight().width((10*widthDp/411).dp))
                                 Text("Off", color = fore_color)
                             }
                         }
 
                     }
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
-                VolumeSlider(context=Context1,volume = volume, onVolumeChange = { volume = it })
+                Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
+                VolumeSlider(context=Context1,volume = volume, onVolumeChange = { volume = it }, widthDp, heightDp)
 
-                Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                 Row {
 
                     Text("Auto Screenshot: ", color=fore_color, fontStyle = FontStyle(R.font.macondo))
-                    Spacer(modifier=Modifier.fillMaxHeight().width(30.dp))
-                    IconButton(onClick = { editsettings(context, 4, 100f); autoss=!autoss}, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                    Spacer(modifier=Modifier.fillMaxHeight().width((30*widthDp/411).dp))
+                    IconButton(onClick = {Soundplayer.click(Context1, sounds); editsettings(context, 4, 100f); autoss=!autoss}, modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                         .background(correct4)
-                        .size(100.dp, 40.dp)) {
+                        .size((100*widthDp/411).dp, (40*heightDp/914).dp)) {
                         if (settings[4]=="true") {
                             Row (modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End){
                                 Text("On", color = fore_color)
-                                Spacer(modifier=Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier=Modifier.fillMaxHeight().width((10*widthDp/411).dp))
                                 Icon(
                                     painter = painterResource(R.drawable.circle),
                                     contentDescription = "Check",
@@ -595,7 +610,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     contentDescription = "Check",
                                     tint = fore_color
                                 )
-                                Spacer(modifier=Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier=Modifier.fillMaxHeight().width((10*widthDp/411).dp))
                                 Text("Off", color = fore_color)
                             }
                         }
@@ -603,29 +618,29 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     }
 
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                 Row {
                     IconButton(
-                        onClick = { resetsettings(context); dark_mode=true; sounds=true; enable_tiles=true;volume=1f; autoss=true},
-                        modifier = Modifier.size(240.dp, 40.dp).clip(RoundedCornerShape(10.dp)).background(Color.Red)
+                        onClick = {Soundplayer.click(Context1, sounds); resetsettings(context); dark_mode=true; sounds=true; enable_tiles=true;volume=1f; autoss=true},
+                        modifier = Modifier.size((240*widthDp/411).dp, (40*heightDp/914).dp).clip(RoundedCornerShape((10*widthDp/411).dp)).background(Color.Red)
                     ) {
                         Text("Reset Settings", color = contrast_color, fontWeight = FontWeight.Bold, fontSize = 20.sp, fontFamily = FontFamily( Font(R.font.galgony, FontWeight.Normal)))
                     }
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                 Row {
                     IconButton(
-                        onClick = { clear_history(context)},
-                        modifier = Modifier.size(240.dp, 40.dp).clip(RoundedCornerShape(10.dp)).background(Color.Red)
+                        onClick = {Soundplayer.click(Context1, sounds); clear_history(context)},
+                        modifier = Modifier.size((240*widthDp/411).dp, (40*heightDp/914).dp).clip(RoundedCornerShape((10*widthDp/411).dp)).background(Color.Red)
                     ) {
                         Text("Clear Score History", color = contrast_color, fontWeight = FontWeight.Bold, fontSize = 20.sp, fontFamily = FontFamily( Font(R.font.galgony, FontWeight.Normal)))
                     }
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                 Row {
                     IconButton(
-                        onClick = { clear_players(context)},
-                        modifier = Modifier.size(240.dp, 40.dp).clip(RoundedCornerShape(10.dp)).background(Color.Red)
+                        onClick = { Soundplayer.click(Context1, sounds);clear_players(context)},
+                        modifier = Modifier.size((240*widthDp/411).dp, (40*heightDp/914).dp).clip(RoundedCornerShape((10*widthDp/411).dp)).background(Color.Red)
                     ) {
                         Text("Clear Players", color = contrast_color, fontWeight = FontWeight.Bold, fontSize = 20.sp, fontFamily = FontFamily( Font(R.font.galgony, FontWeight.Normal)))
                     }
@@ -650,7 +665,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
             }
         }, modifier = Modifier.fillMaxSize()) { innerPadding ->
             Column(
-                modifier = Modifier.fillMaxSize().background(back_color).padding(20.dp, 20.dp)
+                modifier = Modifier.fillMaxSize().background(back_color).padding((20*widthDp/411).dp, (20*heightDp/914).dp)
                     .verticalScroll(listState),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -658,7 +673,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
             ) {
                 val scores=scoreList(LocalContext.current).toList().sortedByDescending { it.second[0].toInt() }.toMap()
                 var counter=1
-                Row(modifier=Modifier.fillMaxWidth().height(80.dp).background(color = contrast_color).padding(20.dp,0.dp), verticalAlignment = Alignment.CenterVertically){
+                Row(modifier=Modifier.fillMaxWidth().height((80*heightDp/914).dp).background(color = contrast_color).padding((20*widthDp/411).dp, (0*heightDp/914).dp), verticalAlignment = Alignment.CenterVertically){
 
                     Text( "NAME", color = fore_color, fontWeight = FontWeight.Bold)
                     Text("PvP   Bot",color = fore_color, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
@@ -681,10 +696,10 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                         color= Color(205,127,50,255)
                         icon =R.drawable.a3
                     }
-                    Row(modifier=Modifier.fillMaxWidth().height(80.dp).background(color = color).padding(20.dp,0.dp), verticalAlignment = Alignment.CenterVertically){
+                    Row(modifier=Modifier.fillMaxWidth().height((80*heightDp/914).dp).background(color = color).padding((20*widthDp/411).dp, (0*heightDp/914).dp), verticalAlignment = Alignment.CenterVertically){
                         if (counter<4){
-                            Icon(painter = painterResource(icon), contentDescription="Trophy", modifier = Modifier.size(60.dp), tint = fore_color)
-                            Spacer(Modifier.fillMaxHeight().size(20.dp))
+                            Icon(painter = painterResource(icon), contentDescription="Trophy", modifier = Modifier.size((60*widthDp/411).dp, (60*heightDp/914).dp), tint = fore_color)
+                            Spacer(Modifier.fillMaxHeight().size((20*widthDp/411).dp, (20*heightDp/914).dp))
                         }
                         Text( a.toUpperCase(), color = fore_color, fontWeight = FontWeight.Bold)
                         Text("${b[0]}         ${b[1]}",color = fore_color, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Right)
@@ -703,7 +718,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         Scaffold(topBar = {
             Column {
                 TopAppBar(title = {
-                    IconButton(onClick = { screen_no = last_open.last(); last_open.removeLast() }) {
+                    IconButton(onClick = {Soundplayer.click(Context1, sounds); screen_no = last_open.last(); last_open.removeLast() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -726,7 +741,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(scrollState)
-                        .padding(20.dp),
+                        .padding((20*widthDp/411).dp, (20*heightDp/914).dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     var playerList = loadPlayerNames(context = LocalContext.current)
@@ -740,26 +755,26 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height((20*heightDp/914).dp))
                     }
 
                     for (i in playerList) {
                         IconButton(
-                            onClick = { last_open.addLast(5); user1=i; playerList.toMutableList().remove(i); if (np==2 || nt==2) {screen_no=6}; else{ screen_no=8} },
+                            onClick = { Soundplayer.click(Context1, sounds);last_open.addLast(5); user1=i; playerList.toMutableList().remove(i); if (np==2 || nt==2) {screen_no=6}; else{ screen_no=8} },
                             modifier = Modifier
-                                .clip(RoundedCornerShape(50.dp))
+                                .clip(RoundedCornerShape((50*widthDp/411).dp))
                                 .background(fore_color)
-                                .size(200.dp, 80.dp)
+                                .size((200*widthDp/411).dp, (80*heightDp/914).dp)
                         ) {
                             Text(i, color = contrast_color, fontSize = 25.sp,
                                 fontFamily = FontFamily(Font(R.font.galgony, FontWeight.Normal)))
                         }
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height((20*heightDp/914).dp))
                     }
 
                     var context = LocalContext.current
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (add_player && (playerName != "")) {
                                 savePlayerNames(context, playerName)
                                 playerName = ""
@@ -768,9 +783,9 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                             add_player = !add_player
                         },
                         modifier = Modifier
-                            .clip(RoundedCornerShape(50.dp))
+                            .clip(RoundedCornerShape((50*widthDp/411).dp))
                             .background(bccollor2)
-                            .size(200.dp, 80.dp)
+                            .size((200*widthDp/411).dp, (80*heightDp/914).dp)
                     ) {
                         if (add_player) {
                             Icon(imageVector = Icons.Default.CheckCircle,
@@ -780,7 +795,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 contentDescription = "Add", tint = fore_color)
                         }
                     }
-                    Spacer(modifier = Modifier.height(100.dp))
+                    Spacer(modifier = Modifier.height((100*heightDp/914).dp))
                 }
             }
         }
@@ -812,7 +827,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(scrollState)
-                        .padding(20.dp),
+                        .padding((20*widthDp/411).dp, (20*heightDp/914).dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     var playerList = loadPlayerNames(context = LocalContext.current).toMutableList()
@@ -827,26 +842,26 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height((20*heightDp/914).dp))
                     }
 
                     for (i in playerList) {
                         IconButton(
-                            onClick = { last_open.addLast(5); user2=i; if (nt==2) {screen_no=9} else {screen_no=7} },
+                            onClick = { Soundplayer.click(Context1, sounds);last_open.addLast(5); user2=i; if (nt==2) {screen_no=9} else {screen_no=7} },
                             modifier = Modifier
-                                .clip(RoundedCornerShape(50.dp))
+                                .clip(RoundedCornerShape((50*widthDp/411).dp))
                                 .background(fore_color)
-                                .size(200.dp, 80.dp)
+                                .size((200*widthDp/411).dp, (80*heightDp/914).dp)
                         ) {
                             Text(i, color = contrast_color, fontSize = 25.sp,
                                 fontFamily = FontFamily(Font(R.font.galgony, FontWeight.Normal)))
                         }
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height((20*heightDp/914).dp))
                     }
 
                     var context = LocalContext.current
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (add_player && (playerName != "")) {
                                 savePlayerNames(context, playerName)
                                 playerName = ""
@@ -856,9 +871,9 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                         },
                         modifier = Modifier
-                            .clip(RoundedCornerShape(50.dp))
+                            .clip(RoundedCornerShape((50*widthDp/411).dp))
                             .background(bccollor2)
-                            .size(200.dp, 80.dp)
+                            .size((200*widthDp/411).dp, (80*heightDp/914).dp)
                     ) {
                         if (add_player) {
                             Icon(imageVector = Icons.Default.CheckCircle,
@@ -868,7 +883,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 contentDescription = "Add", tint = fore_color)
                         }
                     }
-                    Spacer(modifier = Modifier.height(100.dp))
+                    Spacer(modifier = Modifier.height((100*heightDp/914).dp))
                 }
             }
         }
@@ -884,15 +899,15 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
             for (j in 4..6) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Absolute.Center){
                 for (i in 4..6) {
-                    IconButton(onClick = {rows=j; cols=i; grid1= generateGrid(rows,cols,enable_tiles); grid2=
-                        generateGrid(rows, cols,enable_tiles);  if (np==1) screen_no=12;else if (rounds==1 ) screen_no=10; else if (rounds>1) screen_no=11}, modifier=Modifier.height(180.dp).width((110+21*(i-4)).dp).clip(RectangleShape).background(contrast_color) ) {
-                        Row(Modifier.padding(10.dp).fillMaxSize(), horizontalArrangement = Arrangement.Center) {
+                    IconButton(onClick = {Soundplayer.click(Context1, sounds);rows=j; cols=i; grid1= generateGrid(rows,cols,enable_tiles); grid2=
+                        generateGrid(rows, cols,enable_tiles);  if (np==1) screen_no=12;else if (rounds==1 ) screen_no=10; else if (rounds>1) screen_no=11}, modifier=Modifier.height((180*heightDp/914).dp).width((110+21*(i-4)).dp).clip(RectangleShape).background(contrast_color) ) {
+                        Row(Modifier.padding((10*widthDp/411).dp, (10*heightDp/914).dp).fillMaxSize(), horizontalArrangement = Arrangement.Center) {
                             for (k in 1..i) {
-                                Column(Modifier.padding(5.dp)) {
+                                Column(Modifier.padding((5*widthDp/411).dp, (5*heightDp/914).dp)) {
                                     for (l in 1..j) {
                                         Box(
                                             modifier = Modifier
-                                                .size(10.dp)
+                                                .size((10*widthDp/411).dp, (10*heightDp/914).dp)
                                                 .background(
                                                     if ((i + j) % 2 == 0) {
                                                         Color.Blue
@@ -901,15 +916,15 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                                     }
                                                 ) 
                                         )
-                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Spacer(modifier = Modifier.height((10*heightDp/914).dp))
                                     }
                                 }
-                                Spacer(modifier = Modifier.width(1.dp))
+                                Spacer(modifier = Modifier.width((1*widthDp/411).dp))
                             }
                         }
                     }
                 }
-                    Spacer(modifier = Modifier.fillMaxHeight().width(20.dp))
+                    Spacer(modifier = Modifier.fillMaxHeight().width((20*widthDp/411).dp))
             }
             }
         }
@@ -919,7 +934,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         Scaffold (topBar = {
             Column(modifier = Modifier.background(contrast_color)) {
                 TopAppBar(title = {
-                    IconButton(onClick = { screen_no = last_open.last(); last_open.removeLast() }) {
+                    IconButton(onClick = { Soundplayer.click(Context1, sounds);screen_no = last_open.last(); last_open.removeLast() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -930,19 +945,19 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     containerColor = contrast_color))
             }
         }, modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Column(modifier = Modifier.fillMaxSize().background(back_color).padding(20.dp,20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+            Column(modifier = Modifier.fillMaxSize().background(back_color).padding((20*widthDp/411).dp, (20*heightDp/914).dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
                 Text(
                     "CHOOSE DIFFICULTY",
                     fontSize = 30.sp,
                     color = fore_color,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
                 IconButton(
-                    onClick = {difficulty=0; screen_no = 7; last_open.addLast(8) },
-                    modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor1)
-                        .size(200.dp, 80.dp)
+                    onClick = {Soundplayer.click(Context1, sounds);difficulty=0; screen_no = 7; last_open.addLast(8) },
+                    modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp)).background(bccolor1)
+                        .size((200*widthDp/411).dp, (80*heightDp/914).dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
@@ -958,11 +973,11 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     }
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
                 IconButton(
-                    onClick = {difficulty=1; screen_no = 7; last_open.addLast(8) },
-                    modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(bccollor2)
-                        .size(200.dp, 80.dp)
+                    onClick = {Soundplayer.click(Context1, sounds);difficulty=1; screen_no = 7; last_open.addLast(8) },
+                    modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp)).background(bccollor2)
+                        .size((200*widthDp/411).dp, (80*heightDp/914).dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
@@ -978,11 +993,11 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     }
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
                 IconButton(
-                    onClick = {difficulty=2; screen_no = 7; last_open.addLast(8) },
-                    modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor3)
-                        .size(200.dp, 80.dp)
+                    onClick = {Soundplayer.click(Context1, sounds);difficulty=2; screen_no = 7; last_open.addLast(8) },
+                    modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp)).background(bccolor3)
+                        .size((200*widthDp/411).dp, (80*heightDp/914).dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
@@ -998,7 +1013,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     }
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
             }
 
 
@@ -1020,19 +1035,19 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     containerColor = contrast_color))
             }
         }, modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Column(modifier = Modifier.fillMaxSize().background(back_color).padding(20.dp,20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+            Column(modifier = Modifier.fillMaxSize().background(back_color).padding((20*widthDp/411).dp, (20*heightDp/914).dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
                 Text(
                     "NO. OF ROUNDS",
                     fontSize = 30.sp,
                     color = fore_color,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
                 IconButton(
-                    onClick = {rounds=3; screen_no = 7; last_open.addLast(8) },
-                    modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor1)
-                        .size(200.dp, 80.dp)
+                    onClick = {Soundplayer.click(Context1, sounds);rounds=3; screen_no = 7; last_open.addLast(8) },
+                    modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp)).background(bccolor1)
+                        .size((200*widthDp/411).dp, (80*heightDp/914).dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
@@ -1048,11 +1063,11 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     }
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
                 IconButton(
-                    onClick = {rounds=5; screen_no = 7; last_open.addLast(8) },
-                    modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(bccollor2)
-                        .size(200.dp, 80.dp)
+                    onClick = {Soundplayer.click(Context1, sounds);rounds=5; screen_no = 7; last_open.addLast(8) },
+                    modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp)).background(bccollor2)
+                        .size((200*widthDp/411).dp, (80*heightDp/914).dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
@@ -1067,11 +1082,11 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     }
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
                 IconButton(
-                    onClick = {rounds=7; screen_no = 7; last_open.addLast(8) },
-                    modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(bccolor3)
-                        .size(200.dp, 80.dp)
+                    onClick = {Soundplayer.click(Context1, sounds);rounds=7; screen_no = 7; last_open.addLast(8) },
+                    modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp)).background(bccolor3)
+                        .size((200*widthDp/411).dp, (80*heightDp/914).dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
@@ -1087,7 +1102,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     }
                 }
-                Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
             }
 
 
@@ -1097,17 +1112,18 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
 
     if (screen_no==10) {
+
         Box(modifier = Modifier.fillMaxSize()) {
             Column {
-                Spacer(modifier = Modifier.height(15.dp))
+                Spacer(modifier = Modifier.height((15*heightDp/914).dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(60.dp)
+                    modifier = Modifier.fillMaxWidth().height((60*heightDp/914).dp)
                         .background(if (u1mode == 1) Color.Red; else Color.White),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
 
 
-                    Spacer(modifier = Modifier.width(30.dp))
+                    Spacer(modifier = Modifier.width((30*widthDp/411).dp))
                     if (cannons1 == 0) {
                         umode1 = 2
                         u1mode = 2
@@ -1122,14 +1138,14 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     }
 
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (umode1 == 0 || u1turn != u2turn) {
                             }; else if (u1mode == 1) {
                                 u1mode = 2; umode1 = 2;
                             } else {
                                 u1mode = 1; umode1 = 1
                             }
-                        }, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                        }, modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                             .background(
                                 if (u1mode == 1 && umode1 != 0) Color(
                                     211,
@@ -1138,7 +1154,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     255
                                 ) else Color.DarkGray
                             )
-                            .size(100.dp, 30.dp)
+                            .size((100*widthDp/411).dp, (30*heightDp/914).dp)
                     ) {
                         if (u1mode == 1) {
                             Row(
@@ -1150,7 +1166,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     contentDescription = "Check",
                                     tint = Color.Black
                                 )
-                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier = Modifier.fillMaxHeight().width((10*widthDp/411).dp))
 
                             }
                         } else {
@@ -1170,7 +1186,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                         }
 
                     }
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(modifier = Modifier.width((20*widthDp/411).dp))
                     if (umode1 == 0) {
                         Text("⅄OꓶԀƎꓷ", color = Color.White, fontWeight = FontWeight.Bold)
                     } else if (u1mode == 1) {
@@ -1178,50 +1194,50 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     } else {
                         Text("ꓷNƎℲƎꓷ", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
-                    Spacer(modifier = Modifier.width(30.dp))
+                    Spacer(modifier = Modifier.width((30*widthDp/411).dp))
                     for (i in 0..(2 - cannons1)) {
                         Box(
-                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                            modifier = Modifier.height((30*heightDp/914).dp).width((30*widthDp/411).dp).clip(CircleShape)
                                 .background(Color.Black)
                         ) {}
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width((10*widthDp/411).dp))
                     }
                     for (i in 0..cannons1 - 1) {
 
                         Box(
-                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                            modifier = Modifier.height((30*heightDp/914).dp).width((30*widthDp/411).dp).clip(CircleShape)
                                 .background(if (u1mode == 1 && umode1 != 0) Color.White else Color.Black)
                         ) {}
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width((10*widthDp/411).dp))
                     }
 
 
                 }
 
-                grid(grid1, grid2)
+                grid(grid1, grid2, refresh,sounds, widthDp, heightDp)
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(60.dp)
+                    modifier = Modifier.fillMaxWidth().height((60*heightDp/914).dp)
                         .background(if (u2mode == 1) Color.Red; else Color.White),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Spacer(modifier = Modifier.width(30.dp))
+                    Spacer(modifier = Modifier.width((30*widthDp/411).dp))
                     for (i in 0..cannons2 - 1) {
 
                         Box(
-                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                            modifier = Modifier.height((30*heightDp/914).dp).width((30*widthDp/411).dp).clip(CircleShape)
                                 .background(if (u2mode == 1) Color.White else Color.Black)
                         ) {}
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width((10*widthDp/411).dp))
                     }
                     for (i in 0..(2 - cannons2)) {
                         Box(
-                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                            modifier = Modifier.height((30*heightDp/914).dp).width((30*widthDp/411).dp).clip(CircleShape)
                                 .background(Color.Black)
                         ) {}
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width((10*widthDp/411).dp))
                     }
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(modifier = Modifier.width((20*widthDp/411).dp))
                     if (umode2 == 0) {
                         Text("DEPLOY", color = Color.White, fontWeight = FontWeight.Bold)
                     } else if (u2mode == 1) {
@@ -1229,17 +1245,17 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     } else {
                         Text("DEFEND", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(modifier = Modifier.width((20*widthDp/411).dp))
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (umode2 == 0 || u1turn == u2turn) {
                             }; else if (u2mode == 1) {
                                 u2mode = 2; umode2 = 2;
                             } else {
                                 u2mode = 1; umode2 = 1; }
-                        }, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                        }, modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                             .background(if (u2mode == 1) Color(211, 110, 110, 255) else Color.Black)
-                            .size(100.dp, 30.dp)
+                            .size((100*widthDp/411).dp, (30*heightDp/914).dp)
                     ) {
                         if (u2mode == 1) {
                             Row(
@@ -1248,7 +1264,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 horizontalArrangement = Arrangement.End
                             ) {
 
-                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier = Modifier.fillMaxHeight().width((10*widthDp/411).dp))
                                 Icon(
                                     painter = painterResource(R.drawable.compass),
                                     contentDescription = "Check",
@@ -1265,7 +1281,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     contentDescription = "Check",
                                     tint = Color.White
                                 )
-                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier = Modifier.fillMaxHeight().width((10*widthDp/411).dp))
 
                             }
                         }
@@ -1276,7 +1292,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
             }
         }
-        if (cannons1 == 0 && cannons2 == 0) {
+        if ( refresh.value) {
             var score1 = 0
             var score2 = 0
             var ship11 = 0
@@ -1329,14 +1345,14 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Box(modifier=Modifier.clip(RoundedCornerShape(30.dp)).size(400.dp,400.dp).background(Color.Cyan)) {
+                Box(modifier=Modifier.clip(RoundedCornerShape((30*widthDp/411).dp)).size((400*widthDp/411).dp, (400*heightDp/914).dp).background(Color.Cyan)) {
                     Column(
                         verticalArrangement = Arrangement.Top,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Box(
 
-                            modifier = Modifier.size(400.dp,300.dp).clip(RoundedCornerShape(30.dp))
+                            modifier = Modifier.size((400*widthDp/411).dp, (300*heightDp/914).dp).clip(RoundedCornerShape((30*widthDp/411).dp))
                                 .background(Color.White)
                         ) {
                             Column(
@@ -1345,7 +1361,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
                                 if (score2 == score1) {
                                     Row(modifier.fillMaxWidth().background(Color(227,182,57,255)), horizontalArrangement = Arrangement.Center) {
                                         Text(
@@ -1356,7 +1372,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                         )
                                     }
                                     winner=""
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
 
                                     Text(
                                         "$user1          $score1".toUpperCase(),
@@ -1371,7 +1387,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     )
 
 
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                                     Text(
                                         if (np==1) "BOT          $score2"; else "$user2          $score2".toUpperCase(),
                                         color = fccolor1,
@@ -1383,7 +1399,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             )
                                         )
                                     )
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
 
                                 } else {
                                     if (score2 > score1) {
@@ -1403,7 +1419,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
 
                                     Text(
                                         "$user1          $score1".toUpperCase(),
@@ -1418,7 +1434,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     )
 
 
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                                     Text(
                                         if (np==1) "BOT          $score2"; else "$user2          $score2".toUpperCase().toUpperCase(),
                                         color = fccolor1,
@@ -1430,23 +1446,23 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             )
                                         )
                                     )
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                        Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
                         Row(modifier=Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center){
                             if (np!=1) {
                                 IconButton(
-                                    onClick = {
+                                    onClick = {Soundplayer.click(Context1, sounds);
                                         if (winner != "") score_update(
                                             Context1,
                                             winner
                                         );screen_no = 20;
                                     },
-                                    modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                                    modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                                         .background(Color.Black)
-                                        .size(150.dp, 60.dp)
+                                        .size((150*widthDp/411).dp, (60*heightDp/914).dp)
                                 ) {
                                     Text(
                                         "PLAY AGAIN",
@@ -1454,13 +1470,13 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                         color = Color.White, fontWeight = FontWeight.Bold
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(20.dp))
+                                Spacer(modifier = Modifier.width((20*widthDp/411).dp))
                             }
                         IconButton(
-                            onClick = {if (winner!="" && np!=1) score_update(Context1, winner); if (np==1 && score1>score2) bot_update(Context1, user1);screen_no = 0; },
-                            modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                            onClick = {Soundplayer.click(Context1, sounds);if (winner!="" && np!=1) score_update(Context1, winner); if (np==1 && score1>score2) bot_update(Context1, user1);screen_no = 0; },
+                            modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                                 .background(Color.White)
-                                .size(150.dp, 60.dp)
+                                .size((150*widthDp/411).dp, (60*heightDp/914).dp)
                         ) {
                             Text(
                                 "HOME",
@@ -1484,15 +1500,15 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     if (screen_no==11){
         Box(modifier = Modifier.fillMaxSize()) {
             Column {
-                Spacer(modifier = Modifier.height(15.dp))
+                Spacer(modifier = Modifier.height((15*heightDp/914).dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(60.dp)
+                    modifier = Modifier.fillMaxWidth().height((60*heightDp/914).dp)
                         .background(if (u1mode == 1) Color.Red; else Color.White),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
 
 
-                    Spacer(modifier = Modifier.width(30.dp))
+                    Spacer(modifier = Modifier.width((30*widthDp/411).dp))
                     if (cannons1 == 0) {
                         umode1 = 2
                         u1mode = 2
@@ -1507,14 +1523,14 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     }
 
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (umode1 == 0 || u1turn != u2turn) {
                             }; else if (u1mode == 1) {
                                 u1mode = 2; umode1 = 2;
                             } else {
                                 u1mode = 1; umode1 = 1
                             }
-                        }, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                        }, modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                             .background(
                                 if (u1mode == 1 && umode1 != 0) Color(
                                     211,
@@ -1523,7 +1539,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     255
                                 ) else Color.DarkGray
                             )
-                            .size(100.dp, 30.dp)
+                            .size((100*widthDp/411).dp, (30*heightDp/914).dp)
                     ) {
                         if (u1mode == 1) {
                             Row(
@@ -1535,7 +1551,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     contentDescription = "Check",
                                     tint = Color.Black
                                 )
-                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier = Modifier.fillMaxHeight().width((10*widthDp/411).dp))
 
                             }
                         } else {
@@ -1555,7 +1571,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                         }
 
                     }
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(modifier = Modifier.width((20*widthDp/411).dp))
                     if (umode1 == 0) {
                         Text("⅄OꓶԀƎꓷ", color = Color.White, fontWeight = FontWeight.Bold)
                     } else if (u1mode == 1) {
@@ -1563,50 +1579,50 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     } else {
                         Text("ꓷNƎℲƎꓷ", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
-                    Spacer(modifier = Modifier.width(30.dp))
+                    Spacer(modifier = Modifier.width((30*widthDp/411).dp))
                     for (i in 0..(2 - cannons1)) {
                         Box(
-                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                            modifier = Modifier.height((30*heightDp/914).dp).width((30*widthDp/411).dp).clip(CircleShape)
                                 .background(Color.Black)
                         ) {}
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width((10*widthDp/411).dp))
                     }
                     for (i in 0..cannons1 - 1) {
 
                         Box(
-                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                            modifier = Modifier.height((30*heightDp/914).dp).width((30*widthDp/411).dp).clip(CircleShape)
                                 .background(if (u1mode == 1 && umode1 != 0) Color.White else Color.Black)
                         ) {}
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width((10*widthDp/411).dp))
                     }
 
 
                 }
 
-                grid(grid1, grid2)
+                grid(grid1, grid2, refresh,sounds, widthDp, heightDp)
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(60.dp)
+                    modifier = Modifier.fillMaxWidth().height((60*heightDp/914).dp)
                         .background(if (u2mode == 1) Color.Red; else Color.White),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Spacer(modifier = Modifier.width(30.dp))
+                    Spacer(modifier = Modifier.width((30*widthDp/411).dp))
                     for (i in 0..cannons2 - 1) {
 
                         Box(
-                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                            modifier = Modifier.height((30*heightDp/914).dp).width((30*widthDp/411).dp).clip(CircleShape)
                                 .background(if (u2mode == 1) Color.White else Color.Black)
                         ) {}
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width((10*widthDp/411).dp))
                     }
                     for (i in 0..(2 - cannons2)) {
                         Box(
-                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                            modifier = Modifier.height((30*heightDp/914).dp).width((30*widthDp/411).dp).clip(CircleShape)
                                 .background(Color.Black)
                         ) {}
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width((10*widthDp/411).dp))
                     }
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(modifier = Modifier.width((20*widthDp/411).dp))
                     if (umode2 == 0) {
                         Text("DEPLOY", color = Color.White, fontWeight = FontWeight.Bold)
                     } else if (u2mode == 1) {
@@ -1614,17 +1630,17 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     } else {
                         Text("DEFEND", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(modifier = Modifier.width((20*widthDp/411).dp))
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (umode2 == 0 || u1turn == u2turn) {
                             }; else if (u2mode == 1) {
                                 u2mode = 2; umode2 = 2;
                             } else {
                                 u2mode = 1; umode2 = 1; }
-                        }, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                        }, modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                             .background(if (u2mode == 1) Color(211, 110, 110, 255) else Color.Black)
-                            .size(100.dp, 30.dp)
+                            .size((100*widthDp/411).dp, (30*heightDp/914).dp)
                     ) {
                         if (u2mode == 1) {
                             Row(
@@ -1633,7 +1649,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 horizontalArrangement = Arrangement.End
                             ) {
 
-                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier = Modifier.fillMaxHeight().width((10*widthDp/411).dp))
                                 Icon(
                                     painter = painterResource(R.drawable.compass),
                                     contentDescription = "Check",
@@ -1650,7 +1666,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     contentDescription = "Check",
                                     tint = Color.White
                                 )
-                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier = Modifier.fillMaxHeight().width((10*widthDp/411).dp))
 
                             }
                         }
@@ -1661,7 +1677,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
             }
         }
-        if (cannons1 == 0 && cannons2 == 0) {
+        if (refresh.value) {
             println(rounds)
             var score1 = 0
             var score2 = 0
@@ -1750,7 +1766,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     }
                 if (rounds==0) {
                     Box(
-                        modifier = Modifier.clip(RoundedCornerShape(30.dp)).size(400.dp, 400.dp)
+                        modifier = Modifier.clip(RoundedCornerShape((30*widthDp/411).dp)).size((400*widthDp/411).dp, (400*heightDp/914).dp)
                             .background(Color.Cyan)
                     ) {
                         Column(
@@ -1759,8 +1775,8 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                         ) {
                             Box(
 
-                                modifier = Modifier.size(400.dp, 300.dp)
-                                    .clip(RoundedCornerShape(30.dp))
+                                modifier = Modifier.size((400*widthDp/411).dp, (300*heightDp/914).dp)
+                                    .clip(RoundedCornerShape((30*widthDp/411).dp))
                                     .background(Color.White)
                             ) {
                                 var score11= (1..7).sumOf { tourn1[it] ?: 0 }
@@ -1771,7 +1787,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.Center
                                 ) {
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
 
                                     if (score11 == score22) {
                                         Row(
@@ -1787,7 +1803,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             )
                                         }
                                         winner = ""
-                                        Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                        Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
 
                                         Text(
                                             "$user1          $score1".toUpperCase(),
@@ -1802,7 +1818,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                         )
 
 
-                                        Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                        Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                                         Text(
                                             "$user2          $score2".toUpperCase(),
                                             color = fccolor1,
@@ -1814,7 +1830,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                                 )
                                             )
                                         )
-                                        Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                                        Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
 
                                     } else {
                                         if (score22 > score11) {
@@ -1838,7 +1854,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
-                                        Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                        Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
 
                                         Text(
                                             "$user1          $score11".toUpperCase(),
@@ -1853,7 +1869,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                         )
 
 
-                                        Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                        Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                                         Text(
                                             "$user2          $score22".toUpperCase(),
                                             color = fccolor1,
@@ -1865,20 +1881,20 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                                 )
                                             )
                                         )
-                                        Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                                        Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                            Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 IconButton(
-                                    onClick = { screen_no = 0; },
-                                    modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                                    onClick = { Soundplayer.click(Context1, sounds);screen_no = 0; },
+                                    modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                                         .background(Color.White)
-                                        .size(150.dp, 60.dp)
+                                        .size((150*widthDp/411).dp, (60*heightDp/914).dp)
                                 ) {
                                     Text(
                                         "HOME",
@@ -1894,8 +1910,8 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                  else   if (pause){
                         Box(
 
-                            modifier = Modifier.size(400.dp, 300.dp)
-                                .clip(RoundedCornerShape(30.dp))
+                            modifier = Modifier.size((400*widthDp/411).dp, (300*heightDp/914).dp)
+                                .clip(RoundedCornerShape((30*widthDp/411).dp))
                                 .background(Color.White)
                         ) {
                             Column(
@@ -1904,7 +1920,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
                                 if (score2 == score1) {
                                     Row(
                                         modifier.fillMaxWidth()
@@ -1919,7 +1935,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                         )
                                     }
                                     winner = ""
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
 
                                     Text(
                                         "$user1          $score1".toUpperCase(),
@@ -1934,7 +1950,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     )
 
 
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                                     Text(
                                         "$user2          $score2".toUpperCase(),
                                         color = fccolor1,
@@ -1946,7 +1962,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             )
                                         )
                                     )
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
 
                                 } else {
                                     if (score2 > score1) {
@@ -1968,7 +1984,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
 
                                     Text(
                                         "$user1          $score1".toUpperCase(),
@@ -1983,7 +1999,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     )
 
 
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                                     Text(
                                         "$user2          $score2".toUpperCase(),
                                         color = fccolor1,
@@ -1995,7 +2011,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             )
                                         )
                                     )
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
                                 }
                             }
                         }
@@ -2016,15 +2032,15 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     if (screen_no==12){
         Box(modifier = Modifier.fillMaxSize()) {
             Column {
-                Spacer(modifier = Modifier.height(15.dp))
+                Spacer(modifier = Modifier.height((15*heightDp/914).dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(60.dp)
+                    modifier = Modifier.fillMaxWidth().height((60*heightDp/914).dp)
                         .background(if (u1mode == 1) Color.Red; else Color.White),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
 
 
-                    Spacer(modifier = Modifier.width(30.dp))
+                    Spacer(modifier = Modifier.width((30*widthDp/411).dp))
                     if (cannons1 == 0) {
                         umode1 = 2
                         u1mode = 2
@@ -2039,14 +2055,14 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     }
 
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (umode1 == 0 || u1turn != u2turn) {
                             }; else if (u1mode == 1) {
                                 u1mode = 2; umode1 = 2;
                             } else {
                                 u1mode = 1; umode1 = 1
                             }
-                        }, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                        }, modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                             .background(
                                 if (u1mode == 1 && umode1 != 0) Color(
                                     211,
@@ -2055,7 +2071,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     255
                                 ) else Color.DarkGray
                             )
-                            .size(100.dp, 30.dp)
+                            .size((100*widthDp/411).dp, (30*heightDp/914).dp)
                     ) {
                         if (u1mode == 1) {
                             Row(
@@ -2067,7 +2083,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     contentDescription = "Check",
                                     tint = Color.Black
                                 )
-                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier = Modifier.fillMaxHeight().width((10*widthDp/411).dp))
 
                             }
                         } else {
@@ -2087,7 +2103,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                         }
 
                     }
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(modifier = Modifier.width((20*widthDp/411).dp))
                     if (umode1 == 0) {
                         Text("⅄OꓶԀƎꓷ", color = Color.White, fontWeight = FontWeight.Bold)
                     } else if (u1mode == 1) {
@@ -2095,50 +2111,50 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     } else {
                         Text("ꓷNƎℲƎꓷ", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
-                    Spacer(modifier = Modifier.width(30.dp))
+                    Spacer(modifier = Modifier.width((30*widthDp/411).dp))
                     for (i in 0..(2 - cannons1)) {
                         Box(
-                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                            modifier = Modifier.height((30*heightDp/914).dp).width((30*widthDp/411).dp).clip(CircleShape)
                                 .background(Color.Black)
                         ) {}
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width((10*widthDp/411).dp))
                     }
                     for (i in 0..cannons1 - 1) {
 
                         Box(
-                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                            modifier = Modifier.height((30*heightDp/914).dp).width((30*widthDp/411).dp).clip(CircleShape)
                                 .background(if (u1mode == 1 && umode1 != 0) Color.White else Color.Black)
                         ) {}
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width((10*widthDp/411).dp))
                     }
 
 
                 }
 
-                grid(grid1, grid2)
+                grid(grid1, grid2, refresh,sounds, widthDp, heightDp)
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(60.dp)
+                    modifier = Modifier.fillMaxWidth().height((60*heightDp/914).dp)
                         .background(if (u2mode == 1) Color.Red; else Color.White),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Spacer(modifier = Modifier.width(30.dp))
+                    Spacer(modifier = Modifier.width((30*widthDp/411).dp))
                     for (i in 0..cannons2 - 1) {
 
                         Box(
-                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                            modifier = Modifier.height((30*heightDp/914).dp).width((30*widthDp/411).dp).clip(CircleShape)
                                 .background(if (u2mode == 1) Color.White else Color.Black)
                         ) {}
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width((10*widthDp/411).dp))
                     }
                     for (i in 0..(2 - cannons2)) {
                         Box(
-                            modifier = Modifier.height(30.dp).width(30.dp).clip(CircleShape)
+                            modifier = Modifier.height((30*heightDp/914).dp).width((30*widthDp/411).dp).clip(CircleShape)
                                 .background(Color.Black)
                         ) {}
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width((10*widthDp/411).dp))
                     }
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(modifier = Modifier.width((20*widthDp/411).dp))
                     if (umode2 == 0) {
                         Text("DEPLOY", color = Color.White, fontWeight = FontWeight.Bold)
                     } else if (u2mode == 1) {
@@ -2146,17 +2162,17 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     } else {
                         Text("DEFEND", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
-                    Spacer(modifier = Modifier.width(20.dp))
+                    Spacer(modifier = Modifier.width((20*widthDp/411).dp))
                     IconButton(
-                        onClick = {
+                        onClick = {Soundplayer.click(Context1, sounds);
                             if (umode2 == 0 || u1turn == u2turn) {
                             }; else if (u2mode == 1) {
                                 u2mode = 2; umode2 = 2;
                             } else {
                                 u2mode = 1; umode2 = 1; }
-                        }, modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                        }, modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                             .background(if (u2mode == 1) Color(211, 110, 110, 255) else Color.Black)
-                            .size(100.dp, 30.dp)
+                            .size((100*widthDp/411).dp, (30*heightDp/914).dp)
                     ) {
                         if (u2mode == 1) {
                             Row(
@@ -2165,7 +2181,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 horizontalArrangement = Arrangement.End
                             ) {
 
-                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier = Modifier.fillMaxHeight().width((10*widthDp/411).dp))
                                 Icon(
                                     painter = painterResource(R.drawable.compass),
                                     contentDescription = "Check",
@@ -2182,7 +2198,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     contentDescription = "Check",
                                     tint = Color.White
                                 )
-                                Spacer(modifier = Modifier.fillMaxHeight().width(10.dp))
+                                Spacer(modifier = Modifier.fillMaxHeight().width((10*widthDp/411).dp))
 
                             }
                         }
@@ -2193,7 +2209,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
             }
         }
-        if (cannons1 == 0 && cannons2 == 0) {
+        if (refresh.value) {
             var score1 = 0
             var score2 = 0
             var ship11 = 0
@@ -2246,14 +2262,14 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Box(modifier=Modifier.clip(RoundedCornerShape(30.dp)).size(400.dp,400.dp).background(Color.Cyan)) {
+                Box(modifier=Modifier.clip(RoundedCornerShape((30*widthDp/411).dp)).size((400*widthDp/411).dp, (400*heightDp/914).dp).background(Color.Cyan)) {
                     Column(
                         verticalArrangement = Arrangement.Top,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Box(
 
-                            modifier = Modifier.size(400.dp,300.dp).clip(RoundedCornerShape(30.dp))
+                            modifier = Modifier.size((400*widthDp/411).dp, (300*heightDp/914).dp).clip(RoundedCornerShape((30*widthDp/411).dp))
                                 .background(Color.White)
                         ) {
                             Column(
@@ -2262,7 +2278,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
                                 if (score2 == score1) {
                                     Row(modifier.fillMaxWidth().background(Color(227,182,57,255)), horizontalArrangement = Arrangement.Center) {
                                         Text(
@@ -2273,7 +2289,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                         )
                                     }
                                     winner=""
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
 
                                     Text(
                                         "$user1          $score1".toUpperCase(),
@@ -2288,7 +2304,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     )
 
 
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                                     Text(
                                         if (np==1) "BOT          $score2"; else "$user2          $score2".toUpperCase(),
                                         color = fccolor1,
@@ -2300,7 +2316,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             )
                                         )
                                     )
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
 
                                 } else {
                                     if (score2 > score1) {
@@ -2320,7 +2336,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
 
                                     Text(
                                         "$user1          $score1".toUpperCase(),
@@ -2335,7 +2351,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                     )
 
 
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(30.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((30*heightDp/914).dp))
                                     Text(
                                         if (np==1) "BOT          $score2"; else "$user2          $score2".toUpperCase().toUpperCase(),
                                         color = fccolor1,
@@ -2347,18 +2363,18 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             )
                                         )
                                     )
-                                    Spacer(modifier = Modifier.fillMaxWidth().height(50.dp))
+                                    Spacer(modifier = Modifier.fillMaxWidth().height((50*heightDp/914).dp))
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.fillMaxWidth().height(20.dp))
+                        Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
                         Row(modifier=Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center){
 
                             IconButton(
-                                onClick = {if (winner!="" && np!=1) score_update(Context1, winner); if (np==1 && score1>score2) bot_update(Context1, user1);screen_no = 0; },
-                                modifier = Modifier.clip(RoundedCornerShape(50.dp))
+                                onClick = {Soundplayer.click(Context1, sounds);if (winner!="" && np!=1) score_update(Context1, winner); if (np==1 && score1>score2) bot_update(Context1, user1);screen_no = 0; },
+                                modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                                     .background(Color.White)
-                                    .size(150.dp, 60.dp)
+                                    .size((150*widthDp/411).dp, (60*heightDp/914).dp)
                             ) {
                                 Text(
                                     "HOME",
@@ -2383,6 +2399,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
         umode1=0
         umode2=0
+        refresh.value=false
         cannons1=3;
         cannons2=3;
         u1turn=1;
@@ -2403,6 +2420,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         rounds-=1
         umode1=0
         umode2=0
+        refresh.value=false
         if (rounds!=0) {
             cannons1 = 3;
             cannons2 = 3;
@@ -2451,8 +2469,8 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                         contentDescription = "Match Screenshot",
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
-                            .padding(8.dp),
+                            .height((200*heightDp/914).dp)
+                            .padding((8*widthDp/411).dp, (8*heightDp/914).dp),
                         contentScale = ContentScale.Crop
 
                     )
@@ -2485,7 +2503,7 @@ fun saveBitmapToStorage(context: Context, bitmap: Bitmap) {
 var counter=1
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
-fun grid(grid1:List<Tile>, grid2:List<Tile>) {
+fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sounds: Boolean, widthDp: Float, heightDp: Float) {
     val tiles1 = remember { grid1 }
     val tiles2 = remember { grid2 }
     val tileSizex = if (cols == 4) 180f; else if (cols == 5) 144f; else 120f
@@ -2500,14 +2518,16 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
     var ship3drag1 by remember { mutableStateOf(false) }
     var ship4drag1 by remember { mutableStateOf(false) }
     var selectedtile by remember { mutableStateOf(selectedTile(Offset(-1f,-1f),-1, -1, -1, -1)) }
-    var refresh by remember { mutableStateOf(true) }
+
     var tile1: MutableList<Snapping> = mutableListOf<Snapping>()
     var tile2= mutableListOf<Snapping>()
     var opacityu1= mutableListOf(1f,1f,1f,1f);
     var opacityu2= mutableListOf(1f,1f,1f,1f);
     var firecannon by remember { mutableStateOf(false) }
     var firecannon1 by remember { mutableStateOf(false) }
-
+    var autou1 by remember { mutableStateOf(false) }
+    var autou2 by remember { mutableStateOf(false) }
+    
     var showDialog by remember { mutableStateOf(0) }
     if (showDialog==1){
 
@@ -2528,7 +2548,28 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
             showDialog = 0
         }
         }
-
+    LaunchedEffect (autou1){
+        if (autou1){
+            delay(500)
+            ship1drag1=true
+            ship2drag1=true
+            ship3drag1=true
+            ship4drag1=true
+            delay(500)
+            autou1=false
+        }
+    }
+    LaunchedEffect (autou2){
+        if (autou2){
+            delay(500)
+            ship1drag=true
+            ship2drag=true
+            ship3drag=true
+            ship4drag=true
+            delay(500)
+            autou2=false
+        }
+    }
     if (u1turn == u2turn && umode1==2){
 
         ship1drag1=true
@@ -2594,8 +2635,12 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
     val durationMillis = 1000
     val steps = 100
     val delayPerStep = durationMillis / steps
+    val context1=LocalContext.current
     LaunchedEffect(firecannon) {
         if (firecannon) {
+            if (sounds) {
+                Soundplayer.fireball(context = context1)
+            }
             cannonBallVisible.value=true
             repeat(steps) {
                 visible1.value -=  (255 / steps).toInt()
@@ -2624,6 +2669,9 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
     LaunchedEffect(firecannon1) {
         if (firecannon1) {
+            if (sounds) {
+                Soundplayer.fireball(context = context1)
+            }
             cannonBallVisible1.value=true
             repeat(steps1) {
                 visible2.value -=  (255 / steps1).toInt()
@@ -2812,14 +2860,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
             }
             else{
-                botplacedships(tile1, tileSizex, tileSizey)
+                botplacedships(tile1, tileSizex, tileSizey, opacityu2)
                 u2turn+=1
 
             }
         }
     }
     Box(
-        modifier = Modifier.width(1400.dp).height(380.dp).background(Color(99, 205, 191, 255)),
+        modifier = Modifier.width((1400*widthDp/411).dp).height((380*heightDp/914).dp).background(Color(99, 205, 191, 255)),
         contentAlignment = Alignment.Center
     ) {
 
@@ -2833,7 +2881,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
             var canvasPosition by remember { mutableStateOf(Offset.Zero) }
 
             Box(
-                modifier = Modifier.fillMaxWidth().height(280.dp)
+                modifier = Modifier.fillMaxWidth().height((280*heightDp/914).dp)
                     .onGloballyPositioned { coordinates ->
                         val topLeft = coordinates.positionInRoot()
                         val size = coordinates.size.toSize() 
@@ -2913,8 +2961,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                 Canvas(
                     modifier = Modifier
                         .size(
-                            width = 280.dp,
-                            height = 280.dp
+                            (280*widthDp/411).dp, (280*heightDp/914).dp
                         )
                         .onGloballyPositioned { coordinates ->
                             canvasPosition = coordinates.positionInRoot()
@@ -3034,7 +3081,8 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     var offsetX by remember { mutableStateOf(0.01f) }
                     var offsetY by remember { mutableStateOf(0.01f) }
                     var rot1 by remember { mutableStateOf(0) }
-                    if (umode1!=0){
+                    if (umode1!=0 || autou1){
+                        println(u1ships)
                         for (i in u1ships.values){
                             if (i.id==1){
                                 offsetX=i.xcoord
@@ -3044,13 +3092,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         }
                     }
                     IconButton(
-                        onClick = {if (opacityu1[0]!=0.5f) rot1 = 1 - rot1; counter = 1 },
+                        onClick = {Soundplayer.rotate(context1, sounds);if (opacityu1[0]!=0.5f) rot1 = 1 - rot1; counter = 1 },
                         modifier = Modifier
-                            .size(130.dp)
+                            .size((130*widthDp/411).dp, (130*heightDp/914).dp)
                             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                             .pointerInput(Unit) {
                                 detectDragGestures(
                                     onDragEnd = {
+                                        Soundplayer.pop(context1, sounds)
                                         var min = 10000.toDouble()
 
                                         var minx = 0.001f
@@ -3124,7 +3173,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     {
                         Image(painter = painterResource(R.drawable.ship2),
                             contentDescription = "Ship",
-                            modifier = Modifier.size(130.dp, 60.dp).graphicsLayer {
+                            modifier = Modifier.size((130*widthDp/411).dp, (60*heightDp/914).dp).graphicsLayer {
                                 rotationZ = (90f * rot1); transformOrigin =
                                 TransformOrigin(0.5f, 0.5f); clip = false; alpha=opacityu1[0]
                             })
@@ -3135,7 +3184,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     var offsetY by remember { mutableStateOf(0.01f) }
                     var rot by remember { mutableStateOf(0) }
 
-                    if (umode1!=0){
+                    if (umode1!=0 || autou1){
                         for (i in u1ships.values){
                             if (i.id==2){
                                 offsetX=i.xcoord
@@ -3145,13 +3194,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         }
                     }
                     IconButton(
-                        onClick = {if (opacityu1[1]!=0.5f) rot = 1 - rot; counter = 1 },
+                        onClick = {Soundplayer.rotate(context1, sounds);if (opacityu1[1]!=0.5f) rot = 1 - rot; counter = 1 },
                         modifier = Modifier
-                            .size(60.dp)
+                            .size((60*widthDp/411).dp, (60*heightDp/914).dp)
                             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                             .pointerInput(Unit) {
                                 detectDragGestures(
                                     onDragEnd = {
+                                        Soundplayer.pop(context1, sounds)
                                         var min = 10000.toDouble()
 
                                         var minx = 0.01f
@@ -3208,7 +3258,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     {
                         Image(painter = painterResource(R.drawable.ship3),
                             contentDescription = "Ship",
-                            modifier = Modifier.size(60.dp, 60.dp).graphicsLayer {
+                            modifier = Modifier.size((60*widthDp/411).dp, (60*heightDp/914).dp).graphicsLayer {
                                 rotationZ = (90f * rot); transformOrigin =
                                 TransformOrigin(0.5f, 0.5f); clip = false; alpha=opacityu1[1]
                             })
@@ -3218,7 +3268,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     var offsetX by remember { mutableStateOf(0.01f) }
                     var offsetY by remember { mutableStateOf(0.01f) }
                     var rot2 by remember { mutableStateOf(0) }
-                    if (umode1!=0){
+                    if (umode1!=0  || autou1){
                         for (i in u1ships.values){
                             if (i.id==3){
                                 offsetX=i.xcoord
@@ -3228,13 +3278,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         }
                     }
                     IconButton(
-                        onClick = {if (opacityu1[2]!=0.5f) rot2 = 1 - rot2; counter = 1 },
+                        onClick = {Soundplayer.click(context1, sounds);if (opacityu1[2]!=0.5f) rot2 = 1 - rot2; counter = 1 },
                         modifier = Modifier
-                            .size(100.dp)
+                            .size((100*widthDp/411).dp, (100*heightDp/914).dp)
                             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                             .pointerInput(Unit) {
                                 detectDragGestures(
                                     onDragEnd = {
+                                        Soundplayer.pop(context1, sounds)
                                         val shipOffsetInBox = Offset(offsetX, offsetY)
                                         var min = 10000.toDouble()
 
@@ -3317,7 +3368,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     {
                         Image(painter = painterResource(R.drawable.ship1),
                             contentDescription = "Ship",
-                            modifier = Modifier.size(100.dp, 60.dp).graphicsLayer {
+                            modifier = Modifier.size((100*widthDp/411).dp, (60*heightDp/914).dp).graphicsLayer {
                                 rotationZ = (90f * rot2); transformOrigin =
                                 TransformOrigin(0.5f, 0.5f); clip = false; alpha=opacityu1[2]
                             })
@@ -3327,7 +3378,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     var offsetX by remember { mutableStateOf(0.01f) }
                     var offsetY by remember { mutableStateOf(0.01f) }
                     var rot3 by remember { mutableStateOf(0) }
-                    if (umode1!=0){
+                    if (umode1!=0  || autou1){
                         for (i in u1ships.values){
                             if (i.id==4){
                                 offsetX=i.xcoord
@@ -3337,13 +3388,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         }
                     }
                     IconButton(
-                        onClick = {if (opacityu1[3]!=0.5f) rot3 = 1 - rot3; counter = 1 },
+                        onClick = {Soundplayer.rotate(context1, sounds);if (opacityu1[3]!=0.5f) rot3 = 1 - rot3; counter = 1 },
                         modifier = Modifier
-                            .size(60.dp)
+                            .size((60*widthDp/411).dp, (60*heightDp/914).dp)
                             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                             .pointerInput(Unit) {
                                 detectDragGestures(
                                     onDragEnd = {
+                                        Soundplayer.pop(context1, sounds)
                                         var min = 10000.toDouble()
 
                                         var minx = 0.01f
@@ -3399,7 +3451,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     {
                         Image(painter = painterResource(R.drawable.ship3),
                             contentDescription = "Ship",
-                            modifier = Modifier.size(60.dp, 60.dp).graphicsLayer {
+                            modifier = Modifier.size((60*widthDp/411).dp, (60*heightDp/914).dp).graphicsLayer {
                                 rotationZ = (90f * rot3); transformOrigin =
                                 TransformOrigin(0.5f, 0.5f); clip = false; alpha=opacityu1[3]
                             })
@@ -3409,50 +3461,50 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
 
             Row(
-                modifier = Modifier.height(60.dp).fillMaxWidth(),
+                modifier = Modifier.height((60*heightDp/914).dp).fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
 
                 IconButton(
                     onClick = { if (!ship4drag1) ship4drag1 = true },
-                    modifier = Modifier.height(50.dp).width(50.dp)
+                    modifier = Modifier.height((50*heightDp/914).dp).width((50*widthDp/411).dp)
                 ) {
                     Image(
                         painter = painterResource(R.drawable.ship3),
                         contentDescription = "Big Ship",
-                        modifier = Modifier.size(50.dp).graphicsLayer { scaleY = -1f }
+                        modifier = Modifier.size((50*widthDp/411).dp, (50*heightDp/914).dp).graphicsLayer { scaleY = -1f }
                     )
                 }
                 IconButton(
                     onClick = { if (!ship3drag1) ship3drag1 = true },
-                    modifier = Modifier.height(50.dp).width(100.dp)
+                    modifier = Modifier.height((50*heightDp/914).dp).width((100*widthDp/411).dp)
                 ) {
                     Image(
                         painter = painterResource(R.drawable.ship1),
                         contentDescription = "Big Ship",
-                        modifier = Modifier.size(100.dp).graphicsLayer { scaleY = -1f }
+                        modifier = Modifier.size((100*widthDp/411).dp, (100*heightDp/914).dp).graphicsLayer { scaleY = -1f }
                     )
                 }
 
                 IconButton(
                     onClick = { if (!ship2drag1) ship2drag1 = true },
-                    modifier = Modifier.height(50.dp).width(50.dp)
+                    modifier = Modifier.height((50*heightDp/914).dp).width((50*widthDp/411).dp)
                 ) {
                     Image(
                         painter = painterResource(R.drawable.ship3),
                         contentDescription = "Big Ship",
-                        modifier = Modifier.size(50.dp).graphicsLayer { scaleY = -1f }
+                        modifier = Modifier.size((50*widthDp/411).dp, (50*heightDp/914).dp).graphicsLayer { scaleY = -1f }
                     )
                 }
 
                 IconButton(
                     onClick = { if (!ship1drag1) ship1drag1 = true },
-                    modifier = Modifier.height(60.dp).width(125.dp)
+                    modifier = Modifier.height((60*heightDp/914).dp).width((125*widthDp/411).dp)
                 ) {
                     Image(
                         painter = painterResource(R.drawable.ship2),
                         contentDescription = "Big Ship",
-                        modifier = Modifier.width(150.dp).graphicsLayer { scaleY = -1f }
+                        modifier = Modifier.width((150*widthDp/411).dp).graphicsLayer { scaleY = -1f }
                     )
                 }
 
@@ -3463,7 +3515,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
         if ((u1turn == u2turn && umode1%2!=0) || (u1turn!= u2turn && umode2%2==0)){
             Box(
-                modifier = Modifier.width(1400.dp).height(380.dp).background(Color(0, 0, 0, 250)),
+                modifier = Modifier.width((1400*widthDp/411).dp).height((380*heightDp/914).dp).background(Color(0, 0, 0, 250)),
                 contentAlignment = Alignment.Center
             ) {
 
@@ -3481,13 +3533,13 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                             text = "DEPLOY"
                         }
                         Box(
-                            modifier = Modifier.background(Color.Gray).fillMaxWidth().height(30.dp)
+                            modifier = Modifier.background(Color.Gray).fillMaxWidth().height((30*heightDp/914).dp)
                         ) {
 
                         }
                         Box(
-                            modifier = Modifier.clip(RoundedCornerShape(25.dp))
-                                .background(Color.DarkGray).fillMaxWidth().height(130.dp),
+                            modifier = Modifier.clip(RoundedCornerShape((25*widthDp/411).dp))
+                                .background(Color.DarkGray).fillMaxWidth().height((130*heightDp/914).dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
@@ -3507,115 +3559,143 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                     color = Color.White,
                                     textAlign = TextAlign.Center
                                 )
-                                if (ship1drag && ship2drag && ship3drag && ship4drag) {
-                                    IconButton(onClick = {
-                                        val x1start = u2shipstrial[1]?.xcoord ?: -1f
-                                        val y1start = u2shipstrial[1]?.ycoord ?: -1f
-                                        val x2start = u2shipstrial[2]?.xcoord ?: -1f
-                                        val y2start = u2shipstrial[2]?.ycoord ?: -1f
-                                        val x3start = u2shipstrial[3]?.xcoord ?: -1f
-                                        val y3start = u2shipstrial[3]?.ycoord ?: -1f
-                                        val x4start = u2shipstrial[4]?.xcoord ?: -1f
-                                        val y4start = u2shipstrial[4]?.ycoord ?: -1f
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                    if (ship1drag && ship2drag && ship3drag && ship4drag) {
+                                        IconButton(
+                                            onClick = {Soundplayer.click(context1, sounds);
+                                                val x1start = u2shipstrial[1]?.xcoord ?: -1f
+                                                val y1start = u2shipstrial[1]?.ycoord ?: -1f
+                                                val x2start = u2shipstrial[2]?.xcoord ?: -1f
+                                                val y2start = u2shipstrial[2]?.ycoord ?: -1f
+                                                val x3start = u2shipstrial[3]?.xcoord ?: -1f
+                                                val y3start = u2shipstrial[3]?.ycoord ?: -1f
+                                                val x4start = u2shipstrial[4]?.xcoord ?: -1f
+                                                val y4start = u2shipstrial[4]?.ycoord ?: -1f
 
-                                        if (x1start == -1f || x2start == -1f || x3start == -1f || x4start == -1f || y1start == -1f || y2start == -1f || y3start == -1f || y4start == -1f || u2shipstrial[1]?.xcoord == 0.01f || u2shipstrial[2]?.xcoord == 0.01f || u2shipstrial[3]?.xcoord == 0.01f || u2shipstrial[4]?.xcoord == 0.01f || u2shipstrial[1]?.ycoord == 0.01f || u2shipstrial[2]?.ycoord == 0.01f || u2shipstrial[3]?.ycoord == 0.01f || u2shipstrial[4]?.ycoord == 0.01f) {
-                                            showDialog = 1
-                                        } else if (u2shipstrial[1] == null || u2shipstrial[2] == null || u2shipstrial[3] == null || u2shipstrial[4] == null) {
-                                            showDialog = 1
-                                        } else {
-                                            if (u2shipstrial[1]?.rot == 0) {
-                                                for (i in (x1start - 3 * tileSizex / 2).toInt()..(x1start + 3 * tileSizex / 2).toInt()) {
-                                                    if (i < (x2start + tileSizex / 2) && i > (x2start - tileSizex / 2) && y1start == y2start) {
-                                                        showDialog = 2
-                                                    }
-                                                    if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y1start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[1]!!.y < 2))) {
-                                                        showDialog = 2
+                                                if (x1start == -1f || x2start == -1f || x3start == -1f || x4start == -1f || y1start == -1f || y2start == -1f || y3start == -1f || y4start == -1f || u2shipstrial[1]?.xcoord == 0.01f || u2shipstrial[2]?.xcoord == 0.01f || u2shipstrial[3]?.xcoord == 0.01f || u2shipstrial[4]?.xcoord == 0.01f || u2shipstrial[1]?.ycoord == 0.01f || u2shipstrial[2]?.ycoord == 0.01f || u2shipstrial[3]?.ycoord == 0.01f || u2shipstrial[4]?.ycoord == 0.01f) {
+                                                    showDialog = 1
+                                                } else if (u2shipstrial[1] == null || u2shipstrial[2] == null || u2shipstrial[3] == null || u2shipstrial[4] == null) {
+                                                    showDialog = 1
+                                                } else {
+                                                    if (u2shipstrial[1]?.rot == 0) {
+                                                        for (i in (x1start - 3 * tileSizex / 2).toInt()..(x1start + 3 * tileSizex / 2).toInt()) {
+                                                            if (i < (x2start + tileSizex / 2) && i > (x2start - tileSizex / 2) && y1start == y2start) {
+                                                                showDialog = 2
+                                                            }
+                                                            if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y1start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[1]!!.y < 2))) {
+                                                                showDialog = 2
 
+                                                            }
+                                                            if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                                                                showDialog = 2
+                                                            }
+                                                        }
+                                                    } else if (u2shipstrial[1]?.rot == 1) {
+                                                        for (i in (y1start - 3 * tileSizey / 2).toInt()..(y1start + 3 * tileSizey / 2).toInt()) {
+                                                            if (i < (y2start + tileSizey / 2) && i > (y2start - tileSizey / 2) && x1start == x2start) {
+                                                                showDialog = 2
+                                                            }
+                                                            if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x1start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[1]!!.x < 2))) {
+                                                                showDialog = 2
+
+                                                            }
+                                                            if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x1start == x4start) {
+                                                                showDialog = 2
+                                                            }
+                                                        }
                                                     }
-                                                    if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
-                                                        showDialog = 2
+                                                    if (u2shipstrial[2]?.rot == 0) {
+                                                        for (i in (x2start - tileSizex / 2).toInt()..(x2start + tileSizex / 2).toInt()) {
+                                                            if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y2start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[2]!!.y < 2))) {
+                                                                showDialog = 2
+
+                                                            }
+                                                            if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                                                                showDialog = 2
+                                                            }
+                                                        }
+                                                    } else if (u2shipstrial[2]?.rot == 1) {
+                                                        for (i in (y2start - tileSizey / 2).toInt()..(y2start + tileSizey / 2).toInt()) {
+                                                            if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x2start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[2]!!.x < 2))) {
+                                                                showDialog = 2
+
+                                                            }
+                                                            if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x2start == x4start) {
+                                                                showDialog = 2
+                                                            }
+                                                        }
+                                                    }
+
+                                                    if (u2shipstrial[4]?.rot == 0) {
+                                                        for (i in (x4start - tileSizex / 2).toInt()..(x4start + tileSizex / 2).toInt()) {
+                                                            if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y4start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[4]!!.y < 2))) {
+                                                                showDialog = 2
+
+                                                            }
+
+                                                        }
+                                                    } else if (u2shipstrial[4]?.rot == 1) {
+                                                        for (i in (y4start - tileSizey / 2).toInt()..(y4start + tileSizey / 2).toInt()) {
+                                                            if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x4start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[4]!!.x < 2))) {
+                                                                showDialog = 2
+
+                                                            }
+                                                        }
+                                                    }
+                                                    for (i in u1attackedtiles) {
+                                                        if ((opacityu2[0] == 1f && i.x == u2shipstrial[1]!!.x && i.y == u2shipstrial[1]!!.y) || (opacityu2[1] == 1f && i.x == u2shipstrial[2]!!.x && i.y == u2shipstrial[2]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x && i.y == u2shipstrial[3]!!.y) || (opacityu2[3] == 1f && i.x == u2shipstrial[4]!!.x && i.y == u2shipstrial[4]!!.y) || (opacityu2[0] == 1f && (i.x == u2shipstrial[1]!!.x - 1 || i.x == u2shipstrial[1]!!.x + 1) && u2shipstrial[1]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x + 1 && u2shipstrial[3]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[0] == 1f && (i.y == u2shipstrial[1]!!.y - 1 || i.y == u2shipstrial[1]!!.y + 1) && u2shipstrial[1]!!.rot == 1 && i.x == u2shipstrial[1]!!.x) || (opacityu2[2] == 1f && i.y == u2shipstrial[3]!!.y + 1 && u2shipstrial[3]!!.rot == 1 && i.x == u2shipstrial[1]!!.x)) {
+                                                            showDialog = 3
+                                                        }
+                                                    }
+                                                    if (showDialog != 0) {
+                                                        Soundplayer.error(context1, sounds)
+                                                        for (i in u2ships.values) {
+                                                            u2shipstrial[i.id] = i
+                                                        }
+                                                    }
+                                                    if (showDialog == 0) {
+                                                        u2turn += 1; if (umode2 == 0) {
+                                                            umode2 = 1
+                                                        }; for (i in u2shipstrial.values) {
+                                                            u2ships[i.id] = i
+                                                        };ship1drag = false
                                                     }
                                                 }
-                                            } else if (u2shipstrial[1]?.rot == 1) {
-                                                for (i in (y1start - 3 * tileSizey / 2).toInt()..(y1start + 3 * tileSizey / 2).toInt()) {
-                                                    if (i < (y2start + tileSizey / 2) && i > (y2start - tileSizey / 2) && x1start == x2start) {
-                                                        showDialog = 2
-                                                    }
-                                                    if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x1start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[1]!!.x < 2))) {
-                                                        showDialog = 2
-
-                                                    }
-                                                    if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x1start == x4start) {
-                                                        showDialog = 2
-                                                    }
-                                                }
-                                            }
-                                            if (u2shipstrial[2]?.rot == 0) {
-                                                for (i in (x2start - tileSizex / 2).toInt()..(x2start + tileSizex / 2).toInt()) {
-                                                    if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y2start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[2]!!.y < 2))) {
-                                                        showDialog = 2
-
-                                                    }
-                                                    if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
-                                                        showDialog = 2
-                                                    }
-                                                }
-                                            } else if (u2shipstrial[2]?.rot == 1) {
-                                                for (i in (y2start - tileSizey / 2).toInt()..(y2start + tileSizey / 2).toInt()) {
-                                                    if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x2start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[2]!!.x < 2))) {
-                                                        showDialog = 2
-
-                                                    }
-                                                    if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x2start == x4start) {
-                                                        showDialog = 2
-                                                    }
-                                                }
-                                            }
-
-                                            if (u2shipstrial[4]?.rot == 0) {
-                                                for (i in (x4start - tileSizex / 2).toInt()..(x4start + tileSizex / 2).toInt()) {
-                                                    if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y4start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[4]!!.y < 2))) {
-                                                        showDialog = 2
-
-                                                    }
-
-                                                }
-                                            } else if (u2shipstrial[4]?.rot == 1) {
-                                                for (i in (y4start - tileSizey / 2).toInt()..(y4start + tileSizey / 2).toInt()) {
-                                                    if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x4start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[4]!!.x < 2))) {
-                                                        showDialog = 2
-
-                                                    }
-                                                }
-                                            }
-                                            for (i in u1attackedtiles) {
-                                                if ((opacityu2[0] == 1f && i.x == u2shipstrial[1]!!.x && i.y == u2shipstrial[1]!!.y) || (opacityu2[1] == 1f && i.x == u2shipstrial[2]!!.x && i.y == u2shipstrial[2]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x && i.y == u2shipstrial[3]!!.y) || (opacityu2[3] == 1f && i.x == u2shipstrial[4]!!.x && i.y == u2shipstrial[4]!!.y) || (opacityu2[0] == 1f && (i.x == u2shipstrial[1]!!.x - 1 || i.x == u2shipstrial[1]!!.x + 1) && u2shipstrial[1]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x + 1 && u2shipstrial[3]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[0] == 1f && (i.y == u2shipstrial[1]!!.y - 1 || i.y == u2shipstrial[1]!!.y + 1) && u2shipstrial[1]!!.rot == 1 && i.x == u2shipstrial[1]!!.x) || (opacityu2[2] == 1f && i.y == u2shipstrial[3]!!.y + 1 && u2shipstrial[3]!!.rot == 1 && i.x == u2shipstrial[1]!!.x)) {
-                                                    showDialog = 3
-                                                }
-                                            }
-                                            if (showDialog != 0) {
-                                                for (i in u2ships.values) {
-                                                    u2shipstrial[i.id] = i
-                                                }
-                                            }
-                                            if (showDialog == 0) {
-                                                u2turn += 1; if (umode2 == 0) {
-                                                    umode2 = 1
-                                                }; for (i in u2shipstrial.values) {
-                                                    u2ships[i.id] = i
-                                                };ship1drag = false
-                                            }
+                                            },
+                                            modifier = Modifier.background(Color.Cyan)
+                                                .size((100*widthDp/411).dp, (30*heightDp/914).dp)
+                                        ) {
+                                            Text(
+                                                "SAVE",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center
+                                            )
                                         }
-                                    },
-                                        modifier = Modifier.background(Color.Cyan)
-                                            .size(100.dp, 30.dp)
-                                    ) {
-                                        Text(
-                                            "SAVE",
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            textAlign = TextAlign.Center
-                                        )
+
+                                    }
+                                    if (umode2==0) {
+                                        Spacer(Modifier.width((20*widthDp/411).dp))
+                                        IconButton(
+                                            onClick = {Soundplayer.click(context1, sounds);
+                                                autobot(
+                                                    2,
+                                                    tile1,
+                                                    tileSizex,
+                                                    tileSizey,
+                                                    opacityu2
+                                                ); autou2 = true;
+                                            },
+                                            modifier = Modifier.background(Color.Cyan)
+                                                .size((100*widthDp/411).dp, (30*heightDp/914).dp)
+                                        ) {
+                                            Text(
+                                                "AUTO",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -3628,7 +3708,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
         }
     }
         Box(
-            modifier = Modifier.width(1400.dp).height(380.dp).background(Color(99, 205, 191, 255)),
+            modifier = Modifier.width((1400*widthDp/411).dp).height((380*heightDp/914).dp).background(Color(99, 205, 191, 255)),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -3638,49 +3718,49 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
 
                 Row(
-                    modifier = Modifier.height(65.dp).fillMaxWidth(),
+                    modifier = Modifier.height((65*heightDp/914).dp).fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.Bottom
                 ) {
 
                     IconButton(
                         onClick = { counter = 1; if (!ship1drag) ship1drag = true },
-                        modifier = Modifier.height(60.dp).width(125.dp),
+                        modifier = Modifier.height((60*heightDp/914).dp).width((125*widthDp/411).dp),
 
                         ) {
                         Image(
                             painter = painterResource(R.drawable.ship2),
-                            contentDescription = "Big Ship", modifier = Modifier.width(150.dp)
+                            contentDescription = "Big Ship", modifier = Modifier.width((150*widthDp/411).dp)
                         )
                     }
 
 
                     IconButton(
                         onClick = { counter = 1; if (!ship2drag) ship2drag = true },
-                        modifier = Modifier.height(50.dp).width(50.dp)
+                        modifier = Modifier.height((50*heightDp/914).dp).width((50*widthDp/411).dp)
                     ) {
                         Image(
                             painter = painterResource(R.drawable.ship3),
-                            contentDescription = "Big Ship", modifier = Modifier.size(50.dp)
+                            contentDescription = "Big Ship", modifier = Modifier.size((50*widthDp/411).dp, (50*heightDp/914).dp)
                         )
                     }
                     IconButton(
                         onClick = { counter = 1; if (!ship3drag) ship3drag = true },
-                        modifier = Modifier.height(50.dp).width(100.dp)
+                        modifier = Modifier.height((50*heightDp/914).dp).width((100*widthDp/411).dp)
                     ) {
                         Image(
                             painter = painterResource(R.drawable.ship1),
-                            contentDescription = "Big Ship", modifier = Modifier.size(100.dp)
+                            contentDescription = "Big Ship", modifier = Modifier.size((100*widthDp/411).dp, (100*heightDp/914).dp)
                         )
                     }
 
                     IconButton(
                         onClick = { counter = 1; if (!ship4drag) ship4drag = true },
-                        modifier = Modifier.height(50.dp).width(50.dp)
+                        modifier = Modifier.height((50*heightDp/914).dp).width((50*widthDp/411).dp)
                     ) {
                         Image(
                             painter = painterResource(R.drawable.ship3),
-                            contentDescription = "Big Ship", modifier = Modifier.size(50.dp)
+                            contentDescription = "Big Ship", modifier = Modifier.size((50*widthDp/411).dp, (50*heightDp/914).dp)
                         )
                     }
                 }
@@ -3688,7 +3768,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                 var canvasPosition by remember { mutableStateOf(Offset.Zero) }
 
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(280.dp)
+                    modifier = Modifier.fillMaxWidth().height((280*heightDp/914).dp)
                         .onGloballyPositioned { coordinates ->
                             val topLeft = coordinates.positionInRoot()
                             val size = coordinates.size.toSize() 
@@ -3818,8 +3898,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                     Canvas(
                         modifier = Modifier
                             .size(
-                                width = 280.dp,
-                                height = 280.dp
+                                (280*widthDp/411).dp, (280*heightDp/914).dp
                             )
                             .onGloballyPositioned { coordinates ->
                                 canvasPosition = coordinates.positionInRoot()
@@ -3938,7 +4017,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         var offsetX by remember { mutableStateOf(0.01f) }
                         var offsetY by remember { mutableStateOf(0.01f) }
                         var rot1 by remember { mutableStateOf(0) }
-                        if (umode2 != 0) {
+                        if (umode2 != 0  || autou2) {
                             for (i in u2ships.values) {
                                 if (i.id == 1) {
                                     offsetX = i.xcoord
@@ -3948,13 +4027,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                             }
                         }
                         IconButton(
-                            onClick = { if (opacityu2[0] != 0.5f) rot1 = 1 - rot1; counter = 1 },
+                            onClick = {Soundplayer.rotate(context1, sounds); if (opacityu2[0] != 0.5f) rot1 = 1 - rot1; counter = 1 },
                             modifier = Modifier
-                                .size(130.dp)
+                                .size((130*widthDp/411).dp, (130*heightDp/914).dp)
                                 .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                                 .pointerInput(Unit) {
                                     detectDragGestures(
                                         onDragEnd = {
+                                            Soundplayer.pop(context1, sounds)
                                             var min = 10000.toDouble()
 
                                             var minx = 0.001f
@@ -4028,7 +4108,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         {
                             Image(painter = painterResource(R.drawable.ship2),
                                 contentDescription = "Ship",
-                                modifier = Modifier.size(130.dp, 60.dp).graphicsLayer {
+                                modifier = Modifier.size((130*widthDp/411).dp, (60*heightDp/914).dp).graphicsLayer {
                                     rotationZ = (90f * rot1); transformOrigin =
                                     TransformOrigin(0.5f, 0.5f); clip = false; alpha = opacityu2[0]
                                 })
@@ -4039,7 +4119,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         var offsetY by remember { mutableStateOf(0.01f) }
                         var rot by remember { mutableStateOf(0) }
 
-                        if (umode2 != 0) {
+                        if (umode2 != 0|| autou2) {
                             for (i in u2ships.values) {
                                 if (i.id == 2) {
                                     offsetX = i.xcoord
@@ -4049,13 +4129,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                             }
                         }
                         IconButton(
-                            onClick = { if (opacityu2[1] != 0.5f) rot = 1 - rot; counter = 1 },
+                            onClick = {Soundplayer.rotate(context1, sounds); if (opacityu2[1] != 0.5f) rot = 1 - rot; counter = 1 },
                             modifier = Modifier
-                                .size(60.dp)
+                                .size((60*widthDp/411).dp, (60*heightDp/914).dp)
                                 .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                                 .pointerInput(Unit) {
                                     detectDragGestures(
                                         onDragEnd = {
+                                            Soundplayer.pop(context1, sounds)
                                             var min = 10000.toDouble()
 
                                             var minx = 0.01f
@@ -4112,7 +4193,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         {
                             Image(painter = painterResource(R.drawable.ship3),
                                 contentDescription = "Ship",
-                                modifier = Modifier.size(60.dp, 60.dp).graphicsLayer {
+                                modifier = Modifier.size((60*widthDp/411).dp, (60*heightDp/914).dp).graphicsLayer {
                                     rotationZ = (90f * rot); transformOrigin =
                                     TransformOrigin(0.5f, 0.5f); clip = false; alpha = opacityu2[1]
                                 })
@@ -4122,7 +4203,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         var offsetX by remember { mutableStateOf(0.01f) }
                         var offsetY by remember { mutableStateOf(0.01f) }
                         var rot2 by remember { mutableStateOf(0) }
-                        if (umode2 != 0) {
+                        if (umode2 != 0 || autou2) {
                             for (i in u2ships.values) {
                                 if (i.id == 3) {
                                     offsetX = i.xcoord
@@ -4132,13 +4213,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                             }
                         }
                         IconButton(
-                            onClick = { if (opacityu2[2] != 0.5f) rot2 = 1 - rot2; counter = 1 },
+                            onClick = {Soundplayer.rotate(context1, sounds); if (opacityu2[2] != 0.5f) rot2 = 1 - rot2; counter = 1 },
                             modifier = Modifier
-                                .size(100.dp)
+                                .size((100*widthDp/411).dp, (100*heightDp/914).dp)
                                 .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                                 .pointerInput(Unit) {
                                     detectDragGestures(
                                         onDragEnd = {
+                                            Soundplayer.pop(context1, sounds)
                                             val shipOffsetInBox = Offset(offsetX, offsetY)
                                             var min = 10000.toDouble()
 
@@ -4221,7 +4303,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         {
                             Image(painter = painterResource(R.drawable.ship1),
                                 contentDescription = "Ship",
-                                modifier = Modifier.size(100.dp, 60.dp).graphicsLayer {
+                                modifier = Modifier.size((100*widthDp/411).dp, (60*heightDp/914).dp).graphicsLayer {
                                     rotationZ = (90f * rot2); transformOrigin =
                                     TransformOrigin(0.5f, 0.5f); clip = false; alpha = opacityu2[2]
                                 })
@@ -4231,7 +4313,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         var offsetX by remember { mutableStateOf(0.01f) }
                         var offsetY by remember { mutableStateOf(0.01f) }
                         var rot3 by remember { mutableStateOf(0) }
-                        if (umode2 != 0) {
+                        if (umode2 != 0 || autou2) {
                             for (i in u2ships.values) {
                                 if (i.id == 4) {
                                     offsetX = i.xcoord
@@ -4241,13 +4323,14 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                             }
                         }
                         IconButton(
-                            onClick = { if (opacityu2[3] != 0.5f) rot3 = 1 - rot3; counter = 1 },
+                            onClick = {Soundplayer.rotate(context1, sounds); if (opacityu2[3] != 0.5f) rot3 = 1 - rot3; counter = 1 },
                             modifier = Modifier
-                                .size(60.dp)
+                                .size((60*widthDp/411).dp, (60*heightDp/914).dp)
                                 .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                                 .pointerInput(Unit) {
                                     detectDragGestures(
                                         onDragEnd = {
+                                            Soundplayer.pop(context1, sounds)
                                             var min = 10000.toDouble()
 
                                             var minx = 0.01f
@@ -4304,7 +4387,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                         {
                             Image(painter = painterResource(R.drawable.ship3),
                                 contentDescription = "Ship",
-                                modifier = Modifier.size(60.dp, 60.dp).graphicsLayer {
+                                modifier = Modifier.size((60*widthDp/411).dp, (60*heightDp/914).dp).graphicsLayer {
                                     rotationZ = (90f * rot3); transformOrigin =
                                     TransformOrigin(0.5f, 0.5f); clip = false; alpha = opacityu2[3]
                                 })
@@ -4314,7 +4397,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
             }
             if ((u1turn != u2turn && umode2 % 2 != 0) || (u1turn == u2turn && umode1 % 2 == 0)) {
                 Box(
-                    modifier = Modifier.width(1400.dp).height(380.dp)
+                    modifier = Modifier.size((1400*widthDp/411).dp, (380*heightDp/914).dp)
                         .background(Color(0, 0, 0, 250)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -4335,21 +4418,46 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                             text = "⅄OꓶԀƎꓷ"
                         }
                         Box(
-                            modifier = Modifier.background(Color.Gray).fillMaxWidth().height(30.dp)
+                            modifier = Modifier.background(Color.Gray).fillMaxWidth().height((30*heightDp/914).dp)
                         ) {
 
                         }
                         Box(
-                            modifier = Modifier.clip(RoundedCornerShape(25.dp))
-                                .background(Color.DarkGray).fillMaxWidth().height(130.dp),
+                            modifier = Modifier.clip(RoundedCornerShape((25*widthDp/411).dp))
+                                .background(Color.DarkGray).fillMaxWidth().height((130*heightDp/914).dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
                                 modifier = Modifier.fillMaxSize(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                                    if (umode2==0) {
 
+                                        IconButton(
+                                            onClick = {Soundplayer.click(context1, sounds);
+                                                autobot(
+                                                    1,
+                                                    tile1,
+                                                    tileSizex,
+                                                    tileSizey,
+                                                    opacityu1
+                                                ); autou1 = true;
+                                            },
+                                            modifier = Modifier.background(Color.Cyan)
+                                                .size((100*widthDp/411).dp, (30*heightDp/914).dp)
+                                        ) {
+                                            Text(
+                                                "OꓕꓵⱯ",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                        Spacer(Modifier.width((20*widthDp/411).dp))
+                                    }
                                     if (ship1drag1 && ship2drag1 && ship3drag1 && ship4drag1) {
+
                                         IconButton(
                                             onClick = {
                                                 val x1start = u1shipstrial[1]?.xcoord ?: -1f
@@ -4447,24 +4555,32 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                                         }
                                                     }
                                                     if (showDialog != 0) {
+                                                        Soundplayer.error(context1, sounds)
+
                                                         for (i in u1ships.values) {
                                                             u1shipstrial[i.id] = i
                                                         }
                                                     }
                                                     if (showDialog == 0) {
+                                                        Soundplayer.click(context1, sounds)
                                                         u1turn += 1; if (umode1 == 0) {
                                                             umode1 = 1
                                                         }; for (i in u1shipstrial.values) {
                                                             u1ships[i.id] = i
-                                                        };if (np==1){
-                                                            botplacedships(tile1, tileSizex, tileSizey)
-                                                            u2turn+=1
+                                                        };if (np == 1 && umode2 == 0) {
+                                                            botplacedships(
+                                                                tile1,
+                                                                tileSizex,
+                                                                tileSizey,
+                                                                opacityu2
+                                                            )
+                                                            u2turn += 1
                                                         };ship1drag1 = false
                                                     }
                                                 }
                                             },
                                             modifier = Modifier.background(Color.Cyan)
-                                                .size(100.dp, 30.dp)
+                                                .size((100*widthDp/411).dp, (30*heightDp/914).dp)
                                         ) {
                                             Text(
                                                 "ƎꓥⱯS",
@@ -4474,6 +4590,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
                                             )
                                         }
                                     }
+                                }
                                     Text(
                                         "ɯǝɥʇ ǝɔɐןd oʇ sdı̣ɥs doɹp puɐ ƃɐɹꓷ",
                                         fontSize = 15.sp,
@@ -4496,6 +4613,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>) {
 
             }
             if (cannons1==0 && cannons2==0){
+                refresh.value=true
 
             }
         }
@@ -4508,13 +4626,13 @@ fun MyDialogDemo(text: String):Int {
         if (showDialog) {
             Dialog(onDismissRequest = { showDialog = false;  }) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape((12).dp),
                     color = Color.White,
                     tonalElevation = 8.dp
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding((16).dp, (16).dp)) {
                         Text(text)
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height((8).dp))
                         Button(onClick = { showDialog = false }) {
                             Text("Close", color=Color.Black)
                         }
@@ -4526,7 +4644,7 @@ fun MyDialogDemo(text: String):Int {
 
 
 }
-fun botplacedships(tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Float ) {
+fun botplacedships(tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Float, opacityu2: List<Float> ) {
     for (id in 1..4){
         var tile=tile1.random()
         var rot= Random.nextInt(2)
@@ -4548,6 +4666,9 @@ fun botplacedships(tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Fl
         showDialog = 1
     } else {
         if (u2shipstrial[1]?.rot == 0) {
+            if (u2shipstrial[1]?.x==0 || u2shipstrial[1]?.x==(cols-1)){
+                showDialog=1
+            }
             for (i in (x1start - 3 * tileSizex / 2).toInt()..(x1start + 3 * tileSizex / 2).toInt()) {
                 if (i < (x2start + tileSizex / 2) && i > (x2start - tileSizex / 2) && y1start == y2start) {
                     showDialog = 2
@@ -4561,6 +4682,9 @@ fun botplacedships(tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Fl
                 }
             }
         } else if (u2shipstrial[1]?.rot == 1) {
+            if (u2shipstrial[1]?.y==0 || u2shipstrial[1]?.y==(rows-1)){
+                showDialog=1
+            }
             for (i in (y1start - 3 * tileSizey / 2).toInt()..(y1start + 3 * tileSizey / 2).toInt()) {
                 if (i < (y2start + tileSizey / 2) && i > (y2start - tileSizey / 2) && x1start == x2start) {
                     showDialog = 2
@@ -4572,6 +4696,16 @@ fun botplacedships(tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Fl
                 if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x1start == x4start) {
                     showDialog = 2
                 }
+            }
+        }
+        if (u2shipstrial[3]?.rot==0){
+            if (u2shipstrial[3]?.x==(cols-1)){
+                showDialog=1
+            }
+        }
+        else if (u2shipstrial[3]?.rot==1){
+            if (u2shipstrial[3]?.x==(rows-1)){
+                showDialog=1
             }
         }
         if (u2shipstrial[2]?.rot == 0) {
@@ -4595,6 +4729,27 @@ fun botplacedships(tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Fl
                 }
             }
         }
+        if (u2shipstrial[4]?.rot == 0) {
+            for (i in (x4start - tileSizex / 2).toInt()..(x4start + tileSizex / 2).toInt()) {
+                if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y4start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[4]!!.y < 2))) {
+                    showDialog = 2
+
+                }
+
+            }
+        } else if (u2shipstrial[4]?.rot == 1) {
+            for (i in (y4start - tileSizey / 2).toInt()..(y4start + tileSizey / 2).toInt()) {
+                if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x4start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[4]!!.x < 2))) {
+                    showDialog = 2
+
+                }
+            }
+        }
+        for (i in u1attackedtiles) {
+            if ((opacityu2[0] == 1f && i.x == u2shipstrial[1]!!.x && i.y == u2shipstrial[1]!!.y) || (opacityu2[1] == 1f && i.x == u2shipstrial[2]!!.x && i.y == u2shipstrial[2]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x && i.y == u2shipstrial[3]!!.y) || (opacityu2[3] == 1f && i.x == u2shipstrial[4]!!.x && i.y == u2shipstrial[4]!!.y) || (opacityu2[0] == 1f && (i.x == u2shipstrial[1]!!.x - 1 || i.x == u2shipstrial[1]!!.x + 1) && u2shipstrial[1]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x + 1 && u2shipstrial[3]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[0] == 1f && (i.y == u2shipstrial[1]!!.y - 1 || i.y == u2shipstrial[1]!!.y + 1) && u2shipstrial[1]!!.rot == 1 && i.x == u2shipstrial[1]!!.x) || (opacityu2[2] == 1f && i.y == u2shipstrial[3]!!.y + 1 && u2shipstrial[3]!!.rot == 1 && i.x == u2shipstrial[1]!!.x)) {
+                showDialog = 3
+            }
+        }
 
     }
     if (showDialog==0){
@@ -4604,10 +4759,265 @@ fun botplacedships(tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Fl
             u2ships[i.id] = i
         };
 
-        println(u2ships)
+
     }
     else{
-        botplacedships(tile1,tileSizex,tileSizey)
+        botplacedships(tile1,tileSizex,tileSizey,opacityu2)
+    }
+}
+fun autobot(playerno: Int, tile1: MutableList<Snapping>, tileSizex: Float, tileSizey: Float, opacityu2: List<Float>) {
+    if (playerno==2) {
+        for (id in 1..4) {
+            var tile = tile1.random()
+            var rot = Random.nextInt(2)
+            u2shipstrial[id] = Shipposition(
+                id,
+                if (id == 1) 3; else if (id == 3) 2; else 1,
+                tile.col,
+                tile.row,
+                rot,
+                tile.x,
+                tile.y
+            )
+        }
+        var showDialog = 0
+        val x1start = u2shipstrial[1]?.xcoord ?: -1f
+        val y1start = u2shipstrial[1]?.ycoord ?: -1f
+        val x2start = u2shipstrial[2]?.xcoord ?: -1f
+        val y2start = u2shipstrial[2]?.ycoord ?: -1f
+        val x3start = u2shipstrial[3]?.xcoord ?: -1f
+        val y3start = u2shipstrial[3]?.ycoord ?: -1f
+        val x4start = u2shipstrial[4]?.xcoord ?: -1f
+        val y4start = u2shipstrial[4]?.ycoord ?: -1f
+
+        if (x1start == -1f || x2start == -1f || x3start == -1f || x4start == -1f || y1start == -1f || y2start == -1f || y3start == -1f || y4start == -1f || u2shipstrial[1]?.xcoord == 0.01f || u2shipstrial[2]?.xcoord == 0.01f || u2shipstrial[3]?.xcoord == 0.01f || u2shipstrial[4]?.xcoord == 0.01f || u2shipstrial[1]?.ycoord == 0.01f || u2shipstrial[2]?.ycoord == 0.01f || u2shipstrial[3]?.ycoord == 0.01f || u2shipstrial[4]?.ycoord == 0.01f) {
+            showDialog = 1
+        } else if (u2shipstrial[1] == null || u2shipstrial[2] == null || u2shipstrial[3] == null || u2shipstrial[4] == null) {
+            showDialog = 1
+        } else {
+            if (u2shipstrial[1]?.rot == 0) {
+                if (u2shipstrial[1]?.x==0 || u2shipstrial[1]?.x==(cols-1)){
+                    showDialog=1
+                }
+                for (i in (x1start - 3 * tileSizex / 2).toInt()..(x1start + 3 * tileSizex / 2).toInt()) {
+                    if (i < (x2start + tileSizex / 2) && i > (x2start - tileSizex / 2) && y1start == y2start) {
+                        showDialog = 2
+                    }
+                    if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y1start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[1]!!.y < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                        showDialog = 2
+                    }
+                }
+            } else if (u2shipstrial[1]?.rot == 1) {
+                if (u2shipstrial[1]?.y==0 || u2shipstrial[1]?.y==(rows-1)){
+                    showDialog=1
+                }
+                for (i in (y1start - 3 * tileSizey / 2).toInt()..(y1start + 3 * tileSizey / 2).toInt()) {
+                    if (i < (y2start + tileSizey / 2) && i > (y2start - tileSizey / 2) && x1start == x2start) {
+                        showDialog = 2
+                    }
+                    if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x1start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[1]!!.x < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x1start == x4start) {
+                        showDialog = 2
+                    }
+                }
+            }
+            if (u2shipstrial[3]?.rot==0){
+                if (u2shipstrial[3]?.x==(cols-1)){
+                    showDialog=1
+                }
+            }
+            else if (u2shipstrial[3]?.rot==1){
+                if (u2shipstrial[3]?.x==(rows-1)){
+                    showDialog=1
+                }
+            }
+            if (u2shipstrial[2]?.rot == 0) {
+                for (i in (x2start - tileSizex / 2).toInt()..(x2start + tileSizex / 2).toInt()) {
+                    if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y2start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[2]!!.y < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                        showDialog = 2
+                    }
+                }
+            } else if (u2shipstrial[2]?.rot == 1) {
+                for (i in (y2start - tileSizey / 2).toInt()..(y2start + tileSizey / 2).toInt()) {
+                    if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x2start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[2]!!.x < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x2start == x4start) {
+                        showDialog = 2
+                    }
+                }
+            }
+            if (u2shipstrial[4]?.rot == 0) {
+                for (i in (x4start - tileSizex / 2).toInt()..(x4start + tileSizex / 2).toInt()) {
+                    if ((u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y4start == y3start) || (u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u2shipstrial[3]!!.y - u2shipstrial[4]!!.y < 2))) {
+                        showDialog = 2
+
+                    }
+
+                }
+            } else if (u2shipstrial[4]?.rot == 1) {
+                for (i in (y4start - tileSizey / 2).toInt()..(y4start + tileSizey / 2).toInt()) {
+                    if ((u2shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x4start == x3start) || (u2shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u2shipstrial[3]!!.x - u2shipstrial[4]!!.x < 2))) {
+                        showDialog = 2
+
+                    }
+                }
+            }
+            for (i in u1attackedtiles) {
+                if ((opacityu2[0] == 1f && i.x == u2shipstrial[1]!!.x && i.y == u2shipstrial[1]!!.y) || (opacityu2[1] == 1f && i.x == u2shipstrial[2]!!.x && i.y == u2shipstrial[2]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x && i.y == u2shipstrial[3]!!.y) || (opacityu2[3] == 1f && i.x == u2shipstrial[4]!!.x && i.y == u2shipstrial[4]!!.y) || (opacityu2[0] == 1f && (i.x == u2shipstrial[1]!!.x - 1 || i.x == u2shipstrial[1]!!.x + 1) && u2shipstrial[1]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[2] == 1f && i.x == u2shipstrial[3]!!.x + 1 && u2shipstrial[3]!!.rot == 0 && i.y == u2shipstrial[1]!!.y) || (opacityu2[0] == 1f && (i.y == u2shipstrial[1]!!.y - 1 || i.y == u2shipstrial[1]!!.y + 1) && u2shipstrial[1]!!.rot == 1 && i.x == u2shipstrial[1]!!.x) || (opacityu2[2] == 1f && i.y == u2shipstrial[3]!!.y + 1 && u2shipstrial[3]!!.rot == 1 && i.x == u2shipstrial[1]!!.x)) {
+                    showDialog = 3
+                }
+            }
+
+        }
+        if (showDialog == 0) {
+             for (i in u2shipstrial.values) {
+                u2ships[i.id] = i
+            };
+
+
+        } else {
+            autobot(2,tile1, tileSizex, tileSizey, opacityu2)
+        }
+    }
+    else if (playerno==1) {
+        for (id in 1..4) {
+            var tile = tile1.random()
+            var rot = Random.nextInt(2)
+            u1shipstrial[id] = Shipposition(
+                id,
+                if (id == 1) 3; else if (id == 3) 2; else 1,
+                tile.col,
+                tile.row,
+                rot,
+                tile.x,
+                tile.y
+            )
+        }
+        var showDialog = 0
+        val x1start = u1shipstrial[1]?.xcoord ?: -1f
+        val y1start = u1shipstrial[1]?.ycoord ?: -1f
+        val x2start = u1shipstrial[2]?.xcoord ?: -1f
+        val y2start = u1shipstrial[2]?.ycoord ?: -1f
+        val x3start = u1shipstrial[3]?.xcoord ?: -1f
+        val y3start = u1shipstrial[3]?.ycoord ?: -1f
+        val x4start = u1shipstrial[4]?.xcoord ?: -1f
+        val y4start = u1shipstrial[4]?.ycoord ?: -1f
+
+        if (x1start == -1f || x2start == -1f || x3start == -1f || x4start == -1f || y1start == -1f || y2start == -1f || y3start == -1f || y4start == -1f || u1shipstrial[1]?.xcoord == 0.01f || u1shipstrial[2]?.xcoord == 0.01f || u1shipstrial[3]?.xcoord == 0.01f || u1shipstrial[4]?.xcoord == 0.01f || u1shipstrial[1]?.ycoord == 0.01f || u1shipstrial[2]?.ycoord == 0.01f || u1shipstrial[3]?.ycoord == 0.01f || u1shipstrial[4]?.ycoord == 0.01f) {
+            showDialog = 1
+        } else if (u1shipstrial[1] == null || u1shipstrial[2] == null || u1shipstrial[3] == null || u1shipstrial[4] == null) {
+            showDialog = 1
+        } else {
+            if (u1shipstrial[1]?.rot == 0) {
+                if (u1shipstrial[1]?.x==(cols-1) || (u1shipstrial[1]?.x==0)){
+                    showDialog=1
+                }
+                for (i in (x1start - 3 * tileSizex / 2).toInt()..(x1start + 3 * tileSizex / 2).toInt()) {
+                    if (i < (x2start + tileSizex / 2) && i > (x2start - tileSizex / 2) && y1start == y2start) {
+                        showDialog = 2
+                    }
+                    if ((u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y1start == y3start) || (u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u1shipstrial[3]!!.y - u1shipstrial[1]!!.y < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                        showDialog = 2
+                    }
+                }
+            } else if (u1shipstrial[1]?.rot == 1) {
+                if (u1shipstrial[1]?.y==(rows-1) || (u1shipstrial[1]?.y==0)){
+                    showDialog=1
+                }
+                for (i in (y1start - 3 * tileSizey / 2).toInt()..(y1start + 3 * tileSizey / 2).toInt()) {
+                    if (i < (y2start + tileSizey / 2) && i > (y2start - tileSizey / 2) && x1start == x2start) {
+                        showDialog = 2
+                    }
+                    if ((u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x1start == x3start) || (u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u1shipstrial[3]!!.x - u1shipstrial[1]!!.x < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x1start == x4start) {
+                        showDialog = 2
+                    }
+                }
+            }
+            if (u1shipstrial[3]?.rot==0){
+                if (u1shipstrial[3]?.x==(cols-1)){
+                    showDialog=1
+                }
+            }
+            else if (u1shipstrial[3]?.rot==1){
+                if (u1shipstrial[3]?.x==(rows-1)){
+                    showDialog=1
+                }
+            }
+            if (u1shipstrial[2]?.rot == 0) {
+                for (i in (x2start - tileSizex / 2).toInt()..(x2start + tileSizex / 2).toInt()) {
+                    if ((u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y2start == y3start) || (u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u1shipstrial[3]!!.y - u1shipstrial[2]!!.y < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (x4start + tileSizex / 2) && i > (x4start - tileSizex / 2) && y1start == y4start) {
+                        showDialog = 2
+                    }
+                }
+            } else if (u1shipstrial[2]?.rot == 1) {
+                for (i in (y2start - tileSizey / 2).toInt()..(y2start + tileSizey / 2).toInt()) {
+                    if ((u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x2start == x3start) || (u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u1shipstrial[3]!!.x - u1shipstrial[2]!!.x < 2))) {
+                        showDialog = 2
+
+                    }
+                    if (i < (y4start + tileSizey / 2) && i > (y4start - tileSizey / 2) && x2start == x4start) {
+                        showDialog = 2
+                    }
+                }
+            }
+            if (u1shipstrial[4]?.rot == 0) {
+                for (i in (x4start - tileSizex / 2).toInt()..(x4start + tileSizex / 2).toInt()) {
+                    if ((u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizex) && i > (x3start - tileSizex) && y4start == y3start) || (u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && (u1shipstrial[3]!!.y - u1shipstrial[4]!!.y < 2))) {
+                        showDialog = 2
+
+                    }
+
+                }
+            } else if (u1shipstrial[4]?.rot == 1) {
+                for (i in (y4start - tileSizey / 2).toInt()..(y4start + tileSizey / 2).toInt()) {
+                    if ((u1shipstrial[3]?.rot == 1 && i < (y3start + tileSizey) && i > (y3start - tileSizey) && x4start == x3start) || (u1shipstrial[3]?.rot == 0 && i < (x3start + tileSizey) && i > (x3start - tileSizey) && (u1shipstrial[3]!!.x - u1shipstrial[4]!!.x < 2))) {
+                        showDialog = 2
+
+
+                    }
+                }
+            }
+            for (i in u2attackedtiles) {
+                if ((opacityu2[0] == 1f && i.x == u1shipstrial[1]!!.x && i.y == u1shipstrial[1]!!.y) || (opacityu2[1] == 1f && i.x == u1shipstrial[2]!!.x && i.y == u1shipstrial[2]!!.y) || (opacityu2[2] == 1f && i.x == u1shipstrial[3]!!.x && i.y == u1shipstrial[3]!!.y) || (opacityu2[3] == 1f && i.x == u1shipstrial[4]!!.x && i.y == u1shipstrial[4]!!.y) || (opacityu2[0] == 1f && (i.x == u1shipstrial[1]!!.x - 1 || i.x == u1shipstrial[1]!!.x + 1) && u1shipstrial[1]!!.rot == 0 && i.y == u1shipstrial[1]!!.y) || (opacityu2[2] == 1f && i.x == u1shipstrial[3]!!.x + 1 && u1shipstrial[3]!!.rot == 0 && i.y == u1shipstrial[1]!!.y) || (opacityu2[0] == 1f && (i.y == u1shipstrial[1]!!.y - 1 || i.y == u1shipstrial[1]!!.y + 1) && u1shipstrial[1]!!.rot == 1 && i.x == u1shipstrial[1]!!.x) || (opacityu2[2] == 1f && i.y == u1shipstrial[3]!!.y + 1 && u1shipstrial[3]!!.rot == 1 && i.x == u1shipstrial[1]!!.x)) {
+                    showDialog = 3
+                }
+            }
+
+        }
+        if (showDialog == 0) {
+            for (i in u1shipstrial.values) {
+                u1ships[i.id] = i
+            };
+
+
+        } else {
+            autobot(1,tile1, tileSizex, tileSizey,opacityu2)
+        }
     }
 }
 fun botchooseattack(difficulty: Int, tile: List<Tile>): Tile{
@@ -4828,7 +5238,9 @@ fun readsettings(context: Context): List<String> {
         val fileInput = context.openFileInput("settings.txt")
         fileInput.bufferedReader().readLines()
     } catch (e: Exception) {
-        emptyList()
+        val scoreOutput = context.openFileOutput("settings.txt", Context.MODE_PRIVATE)
+        scoreOutput.write("true\ntrue\ntrue\n100\ntrue\n".toByteArray())
+        listOf("true", "true", "true", "100", "true")
     }
 }
 fun resetsettings(context: Context) {
@@ -4940,14 +5352,14 @@ fun clear_players(context: Context) {
 @Composable
 fun VolumeSlider(context: Context,
     volume: Float,
-    onVolumeChange: (Float) -> Unit
+    onVolumeChange: (Float) -> Unit, widthDp: Float, heightDp: Float
 ) {
     Column(
-        modifier = Modifier.padding(16.dp)
+        modifier = Modifier.padding((16*widthDp/411).dp, (16*heightDp/914).dp)
     ) {
         Text(text = "Volume: ${(volume * 100).toInt()}%", fontWeight = FontWeight.Bold)
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height((8*heightDp/914).dp))
 
         Slider(
             value = volume,
