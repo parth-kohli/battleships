@@ -51,12 +51,15 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.ui.text.font.Font
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -644,6 +647,273 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                     ) {
                         Text("Clear Players", color = contrast_color, fontWeight = FontWeight.Bold, fontSize = 20.sp, fontFamily = FontFamily( Font(R.font.galgony, FontWeight.Normal)))
                     }
+                }
+            }
+        }
+    }
+    if (screen_no == 3) {
+        Scaffold(topBar = {
+            Column {
+                TopAppBar(title = {
+                    IconButton(onClick = {
+                        Soundplayer.click(Context1, sounds)
+                        screen_no = last_open.last()
+                        last_open.removeLast()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = fore_color
+                        )
+                    }
+                }, colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = contrast_color
+                ))
+            }
+        }, modifier = Modifier.fillMaxSize()) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(back_color)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "HOW TO PLAY BATTLESHIPS ARMADA",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = fore_color,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Game Objective
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = contrast_color)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "OBJECTIVE",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = fore_color,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Sink all of your opponent's ships before they sink yours. " +
+                                    "Each player has 4 ships of different sizes to place on their grid.",
+                            color = fore_color
+                        )
+                    }
+                }
+
+                // Ship Types
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = contrast_color)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "SHIP FLEET",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = fore_color,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Ship 1 (3 tiles)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painter = painterResource(R.drawable.ship2),
+                                contentDescription = "Large Ship",
+                                modifier = Modifier.size(100.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("1 Large Ship (3 tiles)", color = fore_color)
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Ship 2 (2 tiles)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painter = painterResource(R.drawable.ship1),
+                                contentDescription = "Medium Ship",
+                                modifier = Modifier.size(80.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("1 Medium Ship (2 tiles)", color = fore_color)
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Ships 3 & 4 (1 tile each)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painter = painterResource(R.drawable.ship3),
+                                contentDescription = "Small Ship",
+                                modifier = Modifier.size(50.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("2 Small Ships (1 tile each)", color = fore_color)
+                        }
+                    }
+                }
+
+                // Game Phases
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = contrast_color)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "GAME PHASES",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = fore_color,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Deployment Phase
+                        Text(
+                            "1. DEPLOYMENT PHASE",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = fore_color,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "- Drag and drop your ships onto your grid\n" +
+                                    "- Rotate ships by clicking on them\n" +
+                                    "- Use the AUTO button for automatic placement\n" +
+                                    "- Click SAVE when all ships are placed",
+                            color = fore_color
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Battle Phase
+                        Text(
+                            "2. BATTLE PHASE",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = fore_color,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "- Take turns attacking opponent's grid\n" +
+                                    "- Tap a tile to select it, tap again to fire\n" +
+                                    "- Gray = Miss, Red = Hit\n" +
+                                    "- Destroyed ships are highlighted",
+                            color = fore_color
+                        )
+                    }
+                }
+
+                // Game Modes
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = contrast_color)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "GAME MODES",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = fore_color,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // PvP
+                        Text(
+                            "• PLAYER VS PLAYER (PVP)",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = fore_color
+                        )
+                        Text(
+                            "Challenge a friend on the same device",
+                            color = fore_color
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Bot
+                        Text(
+                            "• PLAYER VS BOT",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = fore_color
+                        )
+                        Text(
+                            "Play against AI with 3 difficulty levels:\n" +
+                                    "- Easy: Random attacks\n" +
+                                    "- Medium: Some strategy\n" +
+                                    "- Hard: Advanced targeting",
+                            color = fore_color
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Tournament
+                        Text(
+                            "• TOURNAMENT MODE",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = fore_color
+                        )
+                        Text(
+                            "Compete in a best-of series (3, 5, or 7 games)",
+                            color = fore_color
+                        )
+                    }
+                }
+
+                // Scoring
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = contrast_color)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "SCORING",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = fore_color,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "- Small Ship: 150 points\n" +
+                                    "- Medium Ship: 300 points\n" +
+                                    "- Large Ship: 450 points\n" ,
+
+                            color = fore_color
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Track your scores and compare with friends!",
+                            color = fore_color,
+                            fontStyle = FontStyle.Italic
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        Soundplayer.click(Context1, sounds)
+                        screen_no = last_open.last()
+                        last_open.removeLast()
+                    },
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text("BACK TO GAME")
                 }
             }
         }
@@ -1765,6 +2035,9 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
                     }
                 if (rounds==0) {
+                    var context = LocalContext.current
+                    var lifecycleOwner = LocalLifecycleOwner.current
+                    var resultView = LocalView.current
                     Box(
                         modifier = Modifier.clip(RoundedCornerShape((30*widthDp/411).dp)).size((400*widthDp/411).dp, (400*heightDp/914).dp)
                             .background(Color.Cyan)
@@ -1781,6 +2054,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                             ) {
                                 var score11= (1..7).sumOf { tourn1[it] ?: 0 }
                                 var score22= (1..7).sumOf { tourn2[it] ?: 0 }
+
                                 Column(
 
 
@@ -1891,7 +2165,22 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 IconButton(
-                                    onClick = { Soundplayer.click(Context1, sounds);screen_no = 0; },
+                                    onClick = { Soundplayer.click(Context1, sounds);
+
+                                        val bitmap = resultView.drawToBitmap()
+                                        saveBitmapToStorage(context, bitmap)
+                                        for (i in tourn1.values){
+                                            if (i==1){
+                                                score_update(Context1, user1)
+                                            }
+
+                                        }
+                                        for (i in tourn2.values){
+                                            if (i==1){
+                                                score_update(Context1, user2)
+                                            }
+
+                                        };screen_no = 0; },
                                     modifier = Modifier.clip(RoundedCornerShape((50*widthDp/411).dp))
                                         .background(Color.White)
                                         .size((150*widthDp/411).dp, (60*heightDp/914).dp)
@@ -1905,7 +2194,12 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                             }
 
                         }
+                        context = LocalContext.current
+                        lifecycleOwner = LocalLifecycleOwner.current
+                        resultView = LocalView.current
                     }
+
+
                 }
                  else   if (pause){
                         Box(
@@ -1971,7 +2265,6 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                         wscore = score2
                                         lscore = score1
                                     }
-                                    score_update(Context1, winner)
                                     Row(
                                         modifier.fillMaxWidth()
                                             .background(Color(227, 182, 57, 255)),
@@ -2015,11 +2308,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                 }
                             }
                         }
-                    val context = LocalContext.current
-                    val lifecycleOwner = LocalLifecycleOwner.current
-                    val resultView = LocalView.current
-                    val bitmap = resultView.drawToBitmap()
-                    saveBitmapToStorage(context, bitmap)
+
 
 
                 }
@@ -2898,7 +3187,20 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sou
                             }
                             if (clickedTile != null) {
                                 if ((selectedtile.x!= clickedTile.x || selectedtile.y!=clickedTile.y) && u1turn!=u2turn && cannons2!=0){
-                                    selectedtile=selectedTile(tapOffset,clickedTile.x,clickedTile.y,clickedTile.width, clickedTile.height)
+                                    var c1=0
+                                    for (i in u2attackedtiles) {
+                                        if (i.x==selectedtile.x && i.y==selectedtile.y) c1=1
+
+                                    }
+                                    if (c1==0){
+                                        selectedtile = selectedTile(
+                                            tapOffset,
+                                            clickedTile.x,
+                                            clickedTile.y,
+                                            clickedTile.width,
+                                            clickedTile.height
+                                        )
+                                    }
                                 }
                                 else if (u1turn!=u2turn && cannons2!=0){
 
@@ -3784,7 +4086,21 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sou
                                 }
                                 if (clickedTile != null) {
                                     if ((selectedtile.x!= clickedTile.x || selectedtile.y!=clickedTile.y) && u1turn==u2turn && cannons1!=0){
-                                        selectedtile=selectedTile(Offset( clickedTile.x * tileSizex + gap + tileSizex,clickedTile.y * tileSizey + gap),clickedTile.x,clickedTile.y,clickedTile.width, clickedTile.height)
+                                        var c1=0
+                                        for (i in u1attackedtiles) {
+                                            if (i.x==selectedtile.x && i.y==selectedtile.y) c1=1
+
+                                        }
+                                        if (c1==0){
+                                            selectedtile = selectedTile(
+                                                tapOffset,
+                                                clickedTile.x,
+                                                clickedTile.y,
+                                                clickedTile.width,
+                                                clickedTile.height
+                                            )
+                                        }
+
                                     }
 
                                     else if (u1turn == u2turn && cannons1 != 0) {
@@ -5133,6 +5449,8 @@ fun botchooseattack(difficulty: Int, tile: List<Tile>): Tile{
         println(tile1)
 
         return tile1.random()
+
+
     }
 
     return tile.random()
@@ -5329,6 +5647,7 @@ fun bot_update(context: Context, winner: String){
     }
 }
 fun clear_history(context: Context){
+    clearAllScreenshots(context)
     val fileInput=context.openFileInput("scores.txt")
     var input1=fileInput.bufferedReader().readLines().toMutableList()
     val fileInput2=context.openFileInput("bot.txt")
@@ -5343,6 +5662,16 @@ fun clear_history(context: Context){
     }
 
 }
+fun clearAllScreenshots(context: Context) {
+    val dir = File(context.filesDir, "match_history")
+    dir.listFiles()?.forEach { file ->
+        println(file.name)
+        if (file.name.startsWith("match_") && file.name.endsWith(".png")) {
+            file.delete()
+        }
+    }
+}
+
 fun clear_players(context: Context) {
     val fileOutput = context.openFileOutput("scores.txt", Context.MODE_PRIVATE)
     val fileOutput2 = context.openFileOutput("bot.txt", Context.MODE_PRIVATE)
