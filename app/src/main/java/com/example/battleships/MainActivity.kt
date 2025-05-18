@@ -315,7 +315,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                         painter = painterResource(id = R.drawable.title_backdrop),
                         contentDescription = "Background Image",
 
-                        contentScale = ContentScale.Crop 
+                        contentScale = ContentScale.Crop
                     )
                     Column(
                         modifier = Modifier
@@ -330,7 +330,6 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                             contentDescription = "My Icon",
                             modifier = Modifier.size((150*widthDp/411).dp, (150*heightDp/914).dp)
                         )
-
                     }
                 }
                     }
@@ -1184,7 +1183,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                                     } else {
                                                         Color.Green
                                                     }
-                                                ) 
+                                                )
                                         )
                                         Spacer(modifier = Modifier.height((10*heightDp/914).dp))
                                     }
@@ -2795,10 +2794,8 @@ var counter=1
 fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sounds: Boolean, widthDp: Float, heightDp: Float) {
     val tiles1 = remember { grid1 }
     val tiles2 = remember { grid2 }
-    val tileSizex = if (cols == 4)  with(LocalDensity.current) { (68.5713*widthDp/411).dp.toPx() }; else if (cols == 5) with(LocalDensity.current) { (54.857*widthDp/411).dp.toPx() }; else with(LocalDensity.current) { (45.7142*widthDp/411).dp.toPx() }
-    val tileSizey = if (rows == 4) with(LocalDensity.current) { (68.5713*heightDp/914).dp.toPx() }; else if (rows == 5) with(LocalDensity.current) { (54.857*heightDp/914).dp.toPx() }; else with(LocalDensity.current) { (45.7142*heightDp/914).dp.toPx() }
-    val dpValue = with(LocalDensity.current) { 180f.toDp() }
-
+    val tileSizex = with(LocalDensity.current) { (0.66736*widthDp/ cols).dp.toPx() }
+    val tileSizey =  with(LocalDensity.current) { (0.3*heightDp/ rows).dp.toPx() }
     val gap = 4f
     var ship1drag by remember { mutableStateOf(false) }
     var ship2drag by remember { mutableStateOf(false) }
@@ -2818,7 +2815,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sou
     var firecannon1 by remember { mutableStateOf(false) }
     var autou1 by remember { mutableStateOf(false) }
     var autou2 by remember { mutableStateOf(false) }
-    
+
     var showDialog by remember { mutableStateOf(0) }
     if (showDialog==1){
 
@@ -3158,7 +3155,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sou
         }
     }
     Box(
-        modifier = Modifier.width((1400*widthDp/411).dp).height((380*heightDp/914).dp).background(Color(99, 205, 191, 255)),
+        modifier = Modifier.width((1400*widthDp/411).dp).height(((heightDp-(150*heightDp/911))/2).dp).background(Color(99, 205, 191, 255)),
         contentAlignment = Alignment.Center
     ) {
 
@@ -3175,11 +3172,11 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sou
                 modifier = Modifier.fillMaxWidth().height((280*heightDp/914).dp)
                     .onGloballyPositioned { coordinates ->
                         val topLeft = coordinates.positionInRoot()
-                        val size = coordinates.size.toSize() 
+                        val size = coordinates.size.toSize()
                         boxPosition = topLeft + Offset(size.width / 2, size.height / 2)
                     }.pointerInput(Unit) {
                         detectTapGestures { tapOffset ->
-            
+
                             val clickedTile = tiles1.find { tile ->
                                 val left = tile.x * tileSizex + gap+tileSizex
                                 val top = tile.y * tileSizey + gap
@@ -3654,7 +3651,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sou
                                                 )
 
                                         }
-                                       
+
                                     },
                                     onDrag = { change, dragAmount ->
                                         change.consume()
@@ -3819,7 +3816,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sou
 
         if ((u1turn == u2turn && umode1%2!=0) || (u1turn!= u2turn && umode2%2==0)){
             Box(
-                modifier = Modifier.width((1400*widthDp/411).dp).height((380*heightDp/914).dp).background(Color(0, 0, 0, 250)),
+                modifier = Modifier.width((1400*widthDp/411).dp).height(((heightDp-(150*heightDp/911))/2).dp).background(Color(0, 0, 0, 250)),
                 contentAlignment = Alignment.Center
             ) {
 
@@ -3843,7 +3840,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sou
                         }
                         Box(
                             modifier = Modifier.clip(RoundedCornerShape((25*widthDp/411).dp))
-                                .background(Color.DarkGray).fillMaxWidth().height((130*heightDp/914).dp),
+                                .background(Color.DarkGray).fillMaxWidth().fillMaxHeight(0.33f),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
@@ -4012,7 +4009,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sou
         }
     }
         Box(
-            modifier = Modifier.width((1400*widthDp/411).dp).height((380*heightDp/914).dp).background(Color(99, 205, 191, 255)),
+            modifier = Modifier.width((1400*widthDp/411).dp).height(((heightDp-(150*heightDp/911))/2).dp).background(Color(99, 205, 191, 255)),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -4075,7 +4072,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sou
                     modifier = Modifier.fillMaxWidth().height((280*heightDp/914).dp)
                         .onGloballyPositioned { coordinates ->
                             val topLeft = coordinates.positionInRoot()
-                            val size = coordinates.size.toSize() 
+                            val size = coordinates.size.toSize()
                             boxPosition = topLeft + Offset(size.width / 2, size.height / 2)
                         }.pointerInput(Unit) {
                             detectTapGestures { tapOffset ->
@@ -4603,7 +4600,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sou
                                                     )
 
                                             }
-                                    
+
                                         },
                                         onDrag = { change, dragAmount ->
                                             change.consume()
@@ -4715,7 +4712,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sou
             }
             if ((u1turn != u2turn && umode2 % 2 != 0) || (u1turn == u2turn && umode1 % 2 == 0)) {
                 Box(
-                    modifier = Modifier.size((1400*widthDp/411).dp, (380*heightDp/914).dp)
+                    modifier = Modifier.size((1400*widthDp/411).dp, ((heightDp-(150*heightDp/911))/2).dp)
                         .background(Color(0, 0, 0, 250)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -4742,7 +4739,7 @@ fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sou
                         }
                         Box(
                             modifier = Modifier.clip(RoundedCornerShape((25*widthDp/411).dp))
-                                .background(Color.DarkGray).fillMaxWidth().height((130*heightDp/914).dp),
+                                .background(Color.DarkGray).fillMaxWidth().fillMaxHeight(0.33f),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
@@ -5566,7 +5563,7 @@ fun readsettings(context: Context): List<String> {
 fun resetsettings(context: Context) {
     val scoreOutput = context.openFileOutput("settings.txt", Context.MODE_PRIVATE)
     scoreOutput.write("true\ntrue\ntrue\n100\ntrue\n".toByteArray())
-  
+
 }
 fun editsettings(context: Context, number: Int, vol: Float) {
     val fileInput = context.openFileInput("settings.txt")
@@ -5604,7 +5601,7 @@ fun scoreList(context: Context): Map<String,List<String>> {
     } catch (e: Exception) {
         val key = listOf("")
         val value = listOf( listOf(""))
-        
+
         key.zip(value).toMap()
     }
 }
@@ -5624,7 +5621,7 @@ fun score_update(context: Context, winner: String){
     } catch (e: Exception) {
         val key = listOf("")
         val value = listOf( listOf(""))
-     
+
 
     }
 }
