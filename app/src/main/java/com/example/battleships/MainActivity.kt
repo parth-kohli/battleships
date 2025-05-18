@@ -1686,7 +1686,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             "THE WINNER IS ${winner.toUpperCase()}",
                                             fontSize = 30.sp,
                                             color = Color.Black,
-                                            fontWeight = FontWeight.Bold
+                                            fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
                                         )
                                     }
                                     Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
@@ -2125,7 +2125,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                                 "THE WINNER IS ${winner.toUpperCase()}",
                                                 fontSize = 30.sp,
                                                 color = Color.Black,
-                                                fontWeight = FontWeight.Bold
+                                                fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
                                             )
                                         }
                                         Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
@@ -2274,7 +2274,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             "THE WINNER IS ${winner.toUpperCase()}",
                                             fontSize = 30.sp,
                                             color = Color.Black,
-                                            fontWeight = FontWeight.Bold
+                                            fontWeight = FontWeight.Bold , textAlign = TextAlign.Center
                                         )
                                     }
                                     Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
@@ -2622,7 +2622,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
                                             "THE WINNER IS ${winner.toUpperCase()}",
                                             fontSize = 30.sp,
                                             color = Color.Black,
-                                            fontWeight = FontWeight.Bold
+                                            fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
                                         )
                                     }
                                     Spacer(modifier = Modifier.fillMaxWidth().height((20*heightDp/914).dp))
@@ -2795,8 +2795,10 @@ var counter=1
 fun grid(grid1:List<Tile>, grid2:List<Tile>, refresh: MutableState<Boolean>, sounds: Boolean, widthDp: Float, heightDp: Float) {
     val tiles1 = remember { grid1 }
     val tiles2 = remember { grid2 }
-    val tileSizex = if (cols == 4) 180f; else if (cols == 5) 144f; else 120f
-    val tileSizey = if (cols == 4) 180f; else if (cols == 5) 144f; else 120f
+    val tileSizex = if (cols == 4)  with(LocalDensity.current) { (68.5713*widthDp/411).dp.toPx() }; else if (cols == 5) with(LocalDensity.current) { (54.857*widthDp/411).dp.toPx() }; else with(LocalDensity.current) { (45.7142*widthDp/411).dp.toPx() }
+    val tileSizey = if (rows == 4) with(LocalDensity.current) { (68.5713*heightDp/914).dp.toPx() }; else if (rows == 5) with(LocalDensity.current) { (54.857*heightDp/914).dp.toPx() }; else with(LocalDensity.current) { (45.7142*heightDp/914).dp.toPx() }
+    val dpValue = with(LocalDensity.current) { 180f.toDp() }
+
     val gap = 4f
     var ship1drag by remember { mutableStateOf(false) }
     var ship2drag by remember { mutableStateOf(false) }
